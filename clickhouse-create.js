@@ -60,12 +60,29 @@ async function createAndPopulateDevices(clickhouse, devices) {
         // (generateUUIDv4(), 'SERIAL-12345678', 'type1', 'kallvatten')
         // `).toPromise();
 
-        for (const {device_id, serial, type, subType} of devices) {
+        console.time('insertTime');
+
+        // Define batch size
+        const batchSize = 1000; // Adjust based on your system's capacity
+        
+        for (let i = 0; i < devices.length; i += batchSize) {
+            // Slice the devices array to get a batch
+            const batch = devices.slice(i, i + batchSize);
+        
+            // Build values string for insertion
+            const valuesStr = batch.map(({device_id, serial, type, subType}) => 
+                `('${device_id}', '${serial}', '${type}', '${subType}')`
+            ).join(',');
+        
+            // Perform batch insert
             await clickhouse.query(`
                 INSERT INTO devices (id, serial, type, sub_type)
-                VALUES ('${device_id}', '${serial}', '${type}', '${subType}')
+                VALUES ${valuesStr}
             `).toPromise();
-          }
+        }
+        
+        console.timeEnd('insertTime');
+        
         
         console.log(`${devices.length} devices inserted into ClickHouse.`);
 
