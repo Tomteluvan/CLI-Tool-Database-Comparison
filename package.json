@@ -10,9 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@clickhouse/client": "^1.0.0",
     "clickhouse": "^2.6.0"
   },
   "devDependencies": {
-    "@faker-js/faker": "^8.4.1"
+    "@faker-js/faker": "^8.4.1",
+    "typescript": "^5.4.3"
   }
 }

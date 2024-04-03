@@ -18,12 +18,12 @@ const clickhouse = new ClickHouse({
     format: "json",
 })
 
-function generateDeviceData(numRecords) {
+function generateDeviceData(numOfDevices) {
     const types = ['type1', 'type2', 'type3', 'type4'];
     const subTypes = ['kallvatten', 'varmvatten'];
     const devices = [];
   
-    for (let i = 0; i < numRecords; i++) {
+    for (let i = 0; i < numOfDevices; i++) {
       devices.push({
         device_id: faker.string.uuid(),
         serial: 'SERIAL-' + faker.number.int({min: 10000000, max: 99999999}).toString(),
@@ -34,10 +34,19 @@ function generateDeviceData(numRecords) {
   
     return devices;
   }
+
+  function generateMeasurementData(numOfMeasurements) {
+
+    // device_id UUID,
+    // value Float64,
+    // type Int16,
+    // timestamp DateTime('UTC')
+
+  }
   
 
 
-async function createAndPopulateDevices(clickhouse, devices) {
+async function createAndPopulateDevices(clickhouse, devices, measurements, organisations) {
     try {
         //Create devices table
         await clickhouse.query(`
@@ -63,7 +72,7 @@ async function createAndPopulateDevices(clickhouse, devices) {
         console.time('insertTime');
 
         // Define batch size
-        const batchSize = 1000; // Adjust based on your system's capacity
+        const batchSize = 2000; // Adjust based on your system's capacity
         
         for (let i = 0; i < devices.length; i += batchSize) {
             // Slice the devices array to get a batch
@@ -99,7 +108,7 @@ async function createAndPopulateDevices(clickhouse, devices) {
         ORDER BY timestamp;
         `).toPromise();
 
-        //Clear rows before new entry if table exists
+        //Clear rows before new entry in table
         await clickhouse.query(`
         TRUNCATE TABLE measurements;
         `).toPromise();
@@ -115,7 +124,7 @@ async function createAndPopulateDevices(clickhouse, devices) {
         ORDER BY organisation_id;
         `).toPromise();
 
-        //Clear rows before new entry if table exists
+        //Clear rows before new entry in table
         await clickhouse.query(`
         TRUNCATE TABLE organisations;
         `).toPromise();
