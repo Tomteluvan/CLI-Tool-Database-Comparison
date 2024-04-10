@@ -21,7 +21,7 @@ function generateDeviceData(numOfDevices) {
     // const devices: Device[] = [];
     const devices = [];
 
-    console.time("faker time")
+    console.time("faker time devices")
     for (let i = 0; i < numOfDevices; i++) {
       devices.push({
         device_id: faker.string.uuid(),
@@ -30,7 +30,7 @@ function generateDeviceData(numOfDevices) {
         subType: subTypes[faker.number.int({min: 0, max: 1})]
       });
     }
-    console.timeEnd("faker time")
+    console.timeEnd("faker time devices")
   
     return devices;
   }
@@ -101,5 +101,201 @@ function generateDeviceData(numOfDevices) {
     }
 }
 
-const deviceData = generateDeviceData(1000000)
-createAndPopulateDevices(client,deviceData)
+function generateMeasurements(devices, numOfMeasurements, numOfTypes) {
+  const measurements = [];
+
+  
+  console.time("faker time measurements")
+  devices.forEach(device => {
+    for (let typeIndex = 1; typeIndex <= numOfTypes; typeIndex++) {
+      for (let measurementIndex = 0; measurementIndex < numOfMeasurements; measurementIndex++) {
+        measurements.push({
+          device_id: device.device_id, // Use the device_id from the devices array
+          value: faker.number.float({min: 0.0, max: 100.0}), // Assuming value range, adjust as needed
+          type: typeIndex, // Assuming type is a simple integer from 1 to numOfTypes
+          timestamp: faker.date.recent() // this needs to be made so its realistic, j
+        });
+      }
+    }
+  });
+  console.timeEnd("faker time measurements")
+
+  return measurements;
+}
+
+async function createAndPopulateMeasurements(clickhouse, measurements) {
+  try {
+    //Create measurments table
+    await clickhouse.query({
+      query: `
+        CREATE TABLE IF NOT EXISTS measurements (
+          device_id UUID,
+          value Float64,
+          type Int16,
+          timestamp DateTime('UTC')
+      ) ENGINE = MergeTree() 
+      ORDER BY timestamp;
+      `,
+      // You might not need to specify a format for DDL operations.
+    })
+
+    //Clear rows before new entry if table exists
+    await clickhouse.query({
+      query: `TRUNCATE TABLE measurements;`,
+    })
+
+    // Define batch size
+    const batchSize = 10000; // Adjust based on your system's capacity
+
+    console.time("measurement insert")
+    // Insert measurements in batches
+    for (let i = 0; i < measurements.length; i += batchSize) {
+      const batch = measurements.slice(i, i + batchSize);
+
+      // Insert batch using the clickhouse.insert method and JSONEachRow format
+      await clickhouse.insert({
+        table: 'measurements',
+        values: batch.map(({device_id, value, type, timestamp}) => ({
+            device_id: device_id,
+            value: value,
+            type: type,
+            timestamp: timestamp.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '') // Adjusted format
+        })),
+        format: 'JSONEachRow', // This tells ClickHouse how to parse the data
+      });
+    }
+    console.timeEnd("measurement insert")
+
+    console.log(`${measurements.length} measurements inserted into ClickHouse.`);
+
+    console.log('Measurements have been inserted successfully.');
+  } catch (error) {
+    console.error('Error inserting measurements data:', error);
+  }
+    
+
+}
+
+async function createAndPopulateOrganisations(clickhouse, assignments) {
+  try {
+    await clickhouse.query({
+      query: `
+        CREATE TABLE IF NOT EXISTS organisations (
+          organisation_id Int32,
+          device_id UUID
+        ) ENGINE = MergeTree()
+        ORDER BY organisation_id;
+      `,
+    });
+
+    // Clear rows before new entry if table exists
+    await clickhouse.query({
+      query: `TRUNCATE TABLE organisations;`,
+    });
+
+    console.time("organisation insert");
+    // Define batch size
+    const batchSize = 10000; // Adjust based on your system's capacity
+
+    // Insert assignments in batches
+    for (let i = 0; i < assignments.length; i += batchSize) {
+      const batch = assignments.slice(i, i + batchSize);
+
+      // Insert batch using the clickhouse.insert method and JSONEachRow format
+      await clickhouse.insert({
+        table: 'organisations',
+        values: batch,
+        format: 'JSONEachRow',
+      });
+    }
+    console.timeEnd("organisation insert");
+
+
+
+    console.log('Organisations table created.');
+  } catch (error) {
+    console.error('Error creating organisations table:', error);
+  }
+}
+
+function generateOrganisations(devices, numOfOrganisations) {
+  //creates organisation ids and also assigns the device uuids to those 
+  //assigning 50% of the devices to the first organisations then the rest equally
+  const assignments = [];
+  const devicesPerOrg = Math.floor(devices.length / numOfOrganisations);
+  let currentOrg = 1;
+  let currentOrgDeviceCount = 0;
+
+  devices.forEach((device, index) => {
+    if (currentOrg === 1 && index >= devices.length / 2) {
+      // Move to the next organisation after assigning half to the first
+      currentOrg++;
+      currentOrgDeviceCount = 0;
+    } else if (currentOrgDeviceCount >= devicesPerOrg && currentOrg < numOfOrganisations) {
+      // Move to the next organisation after equal distribution, except for the last one
+      currentOrg++;
+      currentOrgDeviceCount = 0;
+    }
+
+    assignments.push({
+      organisation_id: currentOrg,
+      device_id: device.device_id,
+    });
+
+    currentOrgDeviceCount++;
+  });
+
+  return assignments;
+}
+
+async function getAggregatedMeasurementsByDeviceAndType(clickhouse, deviceId, measurementType, fromTimestamp, toTimestamp, granularity) {
+  // Format timestamps to ClickHouse's expected format if needed
+  // Ensure fromTimestamp and toTimestamp are in 'YYYY-MM-DD HH:MM:SS' format
+
+  // The timezone adjustment is handled by converting timestamps to the desired timezone.
+  // Since the data is in UTC and ClickHouse stores timestamps in UTC by default, 
+  // the conversion can be done via date functions if necessary. Here it's assumed you want results in UTC.
+
+  try {
+    await clickhouse.query({
+      query: ` SELECT
+          toUnixTimestamp(dateTrunc('${granularity}', m.timestamp)) AS ts,
+          sum(m.value) AS value,
+          d.sub_type AS type
+      FROM
+          measurements AS m
+      JOIN
+          devices AS d ON d.id = m.device_id
+      WHERE
+          d.id = '${deviceId}' AND
+          m.type = ${measurementType} AND
+          m.timestamp >= '${fromTimestamp}' AND
+          m.timestamp < '${toTimestamp}'
+      GROUP BY
+          ts,
+          d.sub_type
+      ORDER BY
+          ts,
+          d.sub_type
+      `
+
+    });
+
+  } catch (error) {
+      console.error("Error fetching aggregated measurements:", error);
+      throw error;
+  }
+}
+
+
+
+// const deviceData = generateDeviceData(10)
+// const measurements = generateMeasurements(deviceData, 500, 5)
+// const organisations = generateOrganisations(deviceData, 2)
+
+
+// createAndPopulateDevices(client,deviceData)
+// createAndPopulateMeasurements(client, measurements)
+// createAndPopulateOrganisations(client, organisations)
+
+getAggregatedMeasurementsByDeviceAndType(client, "71315ca1-53c2-4cad-82f4-17e155d5ec01",2,"2024-04-09 09:00:00","2024-04-09 10:00:00","hour")
