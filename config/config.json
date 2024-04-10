@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "numoh",
+    "password": null,
+    "database": "postgres_for_test",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "test": {
+    "username": "numoh",
+    "password": null,
+    "database": "postgres_for_test",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "production": {
+    "username": "numoh",
+    "password": null,
+    "database": "postgres_for_test",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  }
+}
