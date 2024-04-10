@@ -56,6 +56,63 @@ function generateDeviceData(numOfDevices) {
     return _devices;
 }
 
+function generateMeasurementData(devicesData, numOfTypes) {
+    const measurementsBatch = [];
+
+    console.time('faker time measurements')
+
+    for (const device of devicesData) {
+
+        let genHour = new Date('2024-01-01T12:00:00Z')
+
+        while (genHour <= new Date('2024-02-01T12:00:00Z')) {
+            for (let typeId = 1; typeId <= numOfTypes; typeId++) {
+                
+                measurementsBatch.push({
+                    device_id: device.device_id,
+                    value: faker.number.float({ min: 0.0, max: 100.0 }),
+                    type: typeId,
+                    timestamp: genHour
+                });
+            }
+
+            genHour = new Date(genHour.getTime() + 60 * 60 * 1000);
+        }
+    }
+    console.timeEnd('faker time measurements')
+    return measurementsBatch;
+}
+
+function generateOrganisationData(devices, numOfOrganisations) {
+    // Creates organisation ids and also assigns the device uuids to those 
+    // Assigning 50% of the devices to the first organisations then the rest equally
+    const assignments = [];
+    const devicesPerOrg = Math.floor(devices.length / numOfOrganisations);
+    let currentOrg = 1;
+    let currentOrgDeviceCount = 0;
+    
+    devices.forEach((device, index) => {
+        if (currentOrg === 1 && index >= devices.length / 2) {
+            // Move to the next organisation after assigning half to the first
+            currentOrg++;
+            currentOrgDeviceCount = 0;
+        } else if (currentOrgDeviceCount >= devicesPerOrg && currentOrg < numOfOrganisations) {
+            // Move to the next organisation after equal distribution, except for the last one
+            currentOrg++;
+            currentOrgDeviceCount = 0;
+        }
+
+        assignments.push({
+            organisation_id: currentOrg,
+            device_id: device.device_id,
+        });
+
+        currentOrgDeviceCount++;
+    });
+
+    return assignments;
+}
+
 async function createAndPopulateDevices(data) {
     try {
 
@@ -105,7 +162,7 @@ async function createAndPopulateDevices(data) {
     }
 }
 
-async function generateMeasurements() {
+async function createAndPopulateMeasurements(data) {
     try {
 
         // Drop table if exists
@@ -122,41 +179,36 @@ async function generateMeasurements() {
 
         console.time('insertTime');
 
-        const devicesData = await devices.findAll({ attributes: ['id'] });
-
-        for (const device of devicesData) {
-            const deviceId = device.id;
-            let genHour = new Date('2024-01-01T12:00:00Z')
-            const measurementsBatch = []; // Initialize an array to hold this device's measurements
-
-            while (genHour <= new Date('2024-02-01T12:00:00Z')) {
-                for (let typeId = 1; typeId <= 8; typeId++) {
-                    const value = parseFloat((faker.number.float({ min: 10, max: 99 }) + 0.01).toFixed(2));
-                    
-                    measurementsBatch.push({
-                        device_id: deviceId,
-                        value: value,
-                        type: typeId,
-                        timestamp: genHour
-                    });
-                }
-
-                genHour = new Date(genHour.getTime() + 60 * 60 * 1000);
+        // Define batch size
+        const batchSize = 1000; // Adjust based on your system's capacity
+        
+        for (let i = 0; i < data.length; i += batchSize) {
+            // Slice the devices array to get a batch
+            const batch = data.slice(i, i + batchSize);
+            
+            // Perform batch insert
+            try {
+                await measurements.bulkCreate(batch.map(({ device_id, value, type, timestamp }) => ({
+                    device_id: device_id,
+                    value: value,
+                    type: type,
+                    timestamp: timestamp
+                })));
+                console.log(`Batch from ${i} to ${i + batchSize} inserted successfully.`);
+            } catch (error) {
+                console.error('Error inserting batch: ', error);
             }
-
-            // Perform a batch insert for the current device's measurements
-            await measurements.bulkCreate(measurementsBatch);
         }
         
         console.timeEnd('insertTime');
 
-        console.log('Measurements generated successfully.');
+        console.log('Measurements inserted successfully.');
     } catch (error) {
-        console.error('Failed to generate measurements: ', error);
+        console.error('Failed to insert measurements: ', error);
     }
 }
 
-async function generateOrganisations() {
+async function createAndPopulateOrganisations(data) {
     try {
         
          // Drop table if exists
@@ -171,18 +223,26 @@ async function generateOrganisations() {
  
          console.time('insertTime');
  
-         const devicesData = await devices.findAll({ attributes: ['id'] });
+         // Define batch size
+        const batchSize = 1000; // Adjust based on your system's capacity
+        
+        for (let i = 0; i < data.length; i += batchSize) {
+            // Slice the devices array to get a batch
+            const batch = data.slice(i, i + batchSize);
+            
+            // Perform batch insert
+            try {
+                await organisations.bulkCreate(batch.map(({ organisation_id, device_id }) => ({
+                    organisation_id: organisation_id,
+                    device_id: device_id,
+                })));
+                console.log(`Batch from ${i} to ${i + batchSize} inserted successfully.`);
+            } catch (error) {
+                console.error('Error inserting batch: ', error);
+            }
+        }
 
-         for (const device of devicesData) {
-            const deviceId = device.id;
-            const organisationId = 1
-
-            await organisations.create({
-                organisation_id: organisationId,
-                device_id: deviceId
-            });
-
-         }
+         console.timeEnd('insertTime')
     } catch (error) {
         console.log('Error inserting data to organisations table.')
     }
@@ -197,9 +257,12 @@ sequelize.authenticate().then(() => {
 
 async function main() {
     const deviceData = generateDeviceData(5000); // Generating 5000 devices
+    const measurements = generateMeasurementData(deviceData, 8);
+    const organisations = generateOrganisationData(deviceData, 1);
+
     await createAndPopulateDevices(deviceData);
-    await generateOrganisations();
-    await generateMeasurements();
+    await createAndPopulateOrganisations(organisations);
+    await createAndPopulateMeasurements(measurements);
 }
 
 main().catch(error => console.error('An error occurred:', error));
