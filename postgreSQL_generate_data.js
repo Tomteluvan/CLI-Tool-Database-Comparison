@@ -3,16 +3,10 @@ const {faker} = require("@faker-js/faker")
 
 faker.seed(12345);
 
-const sequelize = new Sequelize('postgres://numoh:@localhost:5432/postgres_for_test',
+const sequelize = new Sequelize('postgres://numoh:PASSWORD123@localhost:5432/postgres_for_test',
     {
         dialect: 'postgres',
-        protocol: 'postgres',
-        dialectOptions: {
-            // ssl: {
-            //     require: true,
-            //     rejectUnauthorized: false
-            // }
-        }
+        protocol: 'postgres'
     })
 
 // Has to be before app.use()
