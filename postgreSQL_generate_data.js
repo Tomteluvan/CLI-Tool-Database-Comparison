@@ -1,7 +1,7 @@
 const Sequelize = require('sequelize')
 const {faker} = require("@faker-js/faker")
 
-faker.seed(12345);
+faker.seed(12341);
 
 const sequelize = new Sequelize('postgres://numoh:PASSWORD123@localhost:5432/postgres_for_test',
     {
