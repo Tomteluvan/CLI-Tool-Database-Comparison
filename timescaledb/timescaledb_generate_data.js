@@ -1,35 +1,56 @@
 const Sequelize = require('sequelize')
-const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('../generate_data')
 
-const sequelize = new Sequelize('postgres://numoh:PASSWORD123@localhost:5432/timescaledb_for_test',
+async function initializeDatabase() {
+
+    let sequelize, devices, measurements, organisations;
+
+    sequelize = new Sequelize('postgres://numoh:PASSWORD123@localhost:5432/timescaledb_for_test',
     {
         dialect: 'postgres',
         protocol: 'postgres'
-    })
+    });
 
-// Has to be before app.use()
-let devices = sequelize.define('devices', {
-    id: {type: Sequelize.UUID, primaryKey: true },
-    serial: {type: Sequelize.TEXT, allowNull: false },
-    type: {type: Sequelize.TEXT, allowNull: false },
-    sub_type: {type: Sequelize.TEXT, allowNull: false }
-}, { timestamps: false });
+    try {
+        await sequelize.authenticate();
+        console.log('Connection has been established successfully.');
 
-let measurements = sequelize.define('measurements', {
-    device_id: {type: Sequelize.UUID, allowNull: false},
-    value: {type: Sequelize.DOUBLE, allowNull: false},
-    type: {type: Sequelize.SMALLINT, allowNull: false},
-    timestamp: {type: Sequelize.DATE, allowNull: false}
-}, { timestamps: false });
-measurements.removeAttribute("id"); // Removes the primary key "id"
+        devices = sequelize.define('devices', {
+            id: {type: Sequelize.UUID, primaryKey: true },
+            serial: {type: Sequelize.TEXT, allowNull: false },
+            type: {type: Sequelize.TEXT, allowNull: false },
+            sub_type: {type: Sequelize.TEXT, allowNull: false }
+        }, { timestamps: false });
+    
+        measurements = sequelize.define('measurements', {
+            device_id: { type: Sequelize.UUID, allowNull: false },
+            value: { type: Sequelize.DOUBLE, allowNull: false },
+            type: { type: Sequelize.SMALLINT, allowNull: false },
+            timestamp: { type: Sequelize.DATE, allowNull: false }
+        }, { timestamps: false });
+        measurements.removeAttribute("id");
+    
+        organisations = sequelize.define('organisations', {
+            organisation_id: { type: Sequelize.INTEGER, allowNull: false },
+            device_id: { type: Sequelize.UUID, allowNull: false }
+        }, { timestamps: false });
+        organisations.removeAttribute("id");
 
-let organisations = sequelize.define('organisations', {
-    organisation_id: {type: Sequelize.INTEGER, allowNull: false},
-    device_id: {type: Sequelize.UUID, allowNull: false}
-}, { timestamps: false });
-organisations.removeAttribute("id"); // Removes the primary key "id"
+        await sequelize.sync(); // Sync models with database
 
-async function createAndPopulateDevices(data) {
+        console.log('Database initialized successfully.');
+    } catch (error) {
+        console.error('Unable to connect to the database:', error);
+    }
+
+    return {
+        sequelize: sequelize,
+        devices: devices,
+        measurements: measurements,
+        organisations: organisations
+    };
+}
+
+async function createAndPopulateDevices(sequelize, devices, data) {
     try {
 
         // Drop table if exists
@@ -47,7 +68,7 @@ async function createAndPopulateDevices(data) {
         console.time('insertTime');
 
         // Define batch size
-        const batchSize = 1000; // Adjust based on your system's capacity
+        const batchSize = 500; // Adjust based on your system's capacity
         
         for (let i = 0; i < data.length; i += batchSize) {
             // Slice the devices array to get a batch
@@ -69,7 +90,7 @@ async function createAndPopulateDevices(data) {
         
         console.timeEnd('insertTime');
         
-        console.log(`${data.length} devices inserted into PostgreSQL.`);
+        console.log(`${data.length} devices inserted.`);
 
         console.log('Devices table created and populated');
 
@@ -78,7 +99,7 @@ async function createAndPopulateDevices(data) {
     }
 }
 
-async function createAndPopulateMeasurements(data) {
+async function createAndPopulateMeasurements(sequelize, measurements, data) {
     try {
 
         // Drop table if exists
@@ -124,7 +145,7 @@ async function createAndPopulateMeasurements(data) {
     }
 }
 
-async function createAndPopulateOrganisations(data) {
+async function createAndPopulateOrganisations(sequelize, organisations, data) {
     try {
         
          // Drop table if exists
@@ -164,21 +185,9 @@ async function createAndPopulateOrganisations(data) {
     }
 }
 
-// Has to be after app.get()
-sequelize.authenticate().then(() => {
-    console.log('Connection has been established successfully.');
-}).catch(err => {
-    console.error('Unable to connect to the database:', err);
-});
-
-async function main() {
-    const deviceData = generateDeviceData(5000);
-    const measurements = generateMeasurementData(deviceData, 8);
-    const organisations = generateOrganisationData(deviceData, 1);
-
-    await createAndPopulateDevices(deviceData);
-    await createAndPopulateOrganisations(organisations);
-    await createAndPopulateMeasurements(measurements);
-}
-
-main().catch(error => console.error('An error occurred:', error));
+module.exports = {
+    initializeDatabase,
+    createAndPopulateDevices,
+    createAndPopulateMeasurements,
+    createAndPopulateOrganisations
+};

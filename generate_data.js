@@ -24,7 +24,7 @@ function generateDeviceData(numOfDevices) {
 function generateMeasurementData(devicesData, numOfTypes) {
     const measurementsBatch = [];
 
-    console.time('faker time measurements')
+    console.time('faker time')
 
     for (const device of devicesData) {
 
@@ -44,7 +44,7 @@ function generateMeasurementData(devicesData, numOfTypes) {
             genHour = new Date(genHour.getTime() + 60 * 60 * 1000);
         }
     }
-    console.timeEnd('faker time measurements')
+    console.timeEnd('faker time')
     return measurementsBatch;
 }
 
@@ -55,7 +55,8 @@ function generateOrganisationData(devices, numOfOrganisations) {
     const devicesPerOrg = Math.floor(devices.length / numOfOrganisations);
     let currentOrg = 1;
     let currentOrgDeviceCount = 0;
-    
+
+    console.time("faker time")
     devices.forEach((device, index) => {
         if (currentOrg === 1 && index >= devices.length / 2) {
             // Move to the next organisation after assigning half to the first
@@ -74,6 +75,8 @@ function generateOrganisationData(devices, numOfOrganisations) {
 
         currentOrgDeviceCount++;
     });
+
+    console.timeEnd("faker time")
 
     return assignments;
 }
