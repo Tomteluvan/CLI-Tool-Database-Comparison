@@ -21,7 +21,7 @@ function displayMainMenu() {
 }
 
 function displayDatabases() {
-    console.log("\n Choose the database you want to use:");
+    console.log("\nChoose the database you want to use:");
     console.log("1. PostgreSQL");
     console.log("2. TimescaleDB");
     console.log("3. InfluxDB");
@@ -31,8 +31,11 @@ function displayDatabases() {
 }
 
 function displayQuery() {
-    console.log("1. Retrieve data for one specific device.");
-    console.log("2. Retrieve data for several devices within an organization.");
+    console.log("\nChoose the database you want to perform query in:");
+    console.log("1. PostgreSQL or TimescaleDB");
+    console.log("2. InfluxDB");
+    console.log("3. ClickHouse");
+    console.log("4. Go back")
     rl.question('Select an option: ', handleChoosenQuery);
 } 
 
@@ -78,6 +81,7 @@ function handleMainMenuSelection(option) {
           rl.question('Enter the number of organisations: ', (organisations) => {
             numOrganisations = parseInt(organisations);
             organisationsData = generateOrganisationData(devicesData, numOrganisations)
+            console.log("\nNow, update the database with the generated data.");
             displayMainMenu();
           });
         });
@@ -99,9 +103,35 @@ function handleMainMenuSelection(option) {
   }
 }
 
+async function handleChoosenQueryForTimescaleAndPostgres() {
+    console.log("1. Retrieve data for one specific device.");
+    console.log("2. Retrieve data for several devices within an organization.");
+
+    return new Promise((resolve) => {
+        rl.question('Select an option: ', async (option) => {
+            await performQuery(option);
+            resolve();
+        });
+    });
+}
+
+
 async function handleChoosenQuery(option) {
-    await performQuery(option);
-    displayMainMenu();
+    switch (option) {
+        case '1':
+            await handleChoosenQueryForTimescaleAndPostgres();
+            displayMainMenu();
+            break;
+        case '2':
+            // InfluxDB
+            break;
+        case '3':
+            // ClickHouse
+            break;
+
+        default:
+            break;
+    }
 }
 
 rl.on('close', () => {
