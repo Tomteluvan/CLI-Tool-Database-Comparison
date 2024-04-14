@@ -1,14 +1,13 @@
 const Sequelize = require('sequelize')
 
+const sequelize = new Sequelize('postgres://numoh:PASSWORD123@localhost:5432/timescaledb_for_test', {
+    dialect: 'postgres',
+    protocol: 'postgres'
+});
+
+let devices, measurements, organisations;
+
 async function initializeDatabase() {
-
-    let sequelize, devices, measurements, organisations;
-
-    sequelize = new Sequelize('postgres://numoh:PASSWORD123@localhost:5432/timescaledb_for_test',
-    {
-        dialect: 'postgres',
-        protocol: 'postgres'
-    });
 
     try {
         await sequelize.authenticate();
@@ -41,16 +40,9 @@ async function initializeDatabase() {
     } catch (error) {
         console.error('Unable to connect to the database:', error);
     }
-
-    return {
-        sequelize: sequelize,
-        devices: devices,
-        measurements: measurements,
-        organisations: organisations
-    };
 }
 
-async function createAndPopulateDevices(sequelize, devices, data) {
+async function createAndPopulateDevices(data) {
     try {
 
         // Drop table if exists
@@ -99,7 +91,7 @@ async function createAndPopulateDevices(sequelize, devices, data) {
     }
 }
 
-async function createAndPopulateMeasurements(sequelize, measurements, data) {
+async function createAndPopulateMeasurements(data) {
     try {
 
         // Drop table if exists
@@ -113,6 +105,8 @@ async function createAndPopulateMeasurements(sequelize, measurements, data) {
                 type smallint NOT NULL,
                 timestamp timestamp with time zone NOT NULL
         )`);
+
+        await sequelize.query(`SELECT create_hypertable('measurements', by_range('timestamp'));`);
 
         console.time('insertTime');
 
@@ -145,7 +139,7 @@ async function createAndPopulateMeasurements(sequelize, measurements, data) {
     }
 }
 
-async function createAndPopulateOrganisations(sequelize, organisations, data) {
+async function createAndPopulateOrganisations(data) {
     try {
         
          // Drop table if exists
@@ -185,9 +179,81 @@ async function createAndPopulateOrganisations(sequelize, organisations, data) {
     }
 }
 
+async function performQuery(option) {
+    switch (option) {
+        case '1':
+            try {
+                console.time('queryTime'); // Starta mätningen av exekveringstiden
+                const result = await sequelize.query(`
+                    SELECT
+                        extract(epoch from timezone('Europe/Berlin', date_trunc('month', timezone('Europe/Berlin', m.timestamp))))::integer AS ts,
+                        SUM(value) AS value,
+                        d.sub_type AS type
+                    FROM
+                        measurements AS m
+                    JOIN
+                        devices AS d ON d.id = m.device_id
+                    WHERE
+                        d.id = 'c28ace1e-cf28-4d2f-a7d3-9bc8631cd379'
+                        AND m.type = 4
+                        AND m.timestamp >= to_timestamp(1704106800)
+                        AND m.timestamp < to_timestamp(1706698800)
+                    GROUP BY
+                        date_trunc('month', timezone('Europe/Berlin', m.timestamp)),
+                        d.sub_type
+                    ORDER BY
+                        date_trunc('month', timezone('Europe/Berlin', m.timestamp)),
+                        d.sub_type;
+                `);
+                console.log("Resultat:", result[0]); // Skriv ut resultatet
+                console.timeEnd('queryTime'); // Sluta mäta exekveringstiden och skriv ut
+            } catch (error) {
+                console.error('Error during the execution:', error);
+            }
+            break;
+        case '2':
+            try {
+                console.time('queryTime');
+                const result = await sequelize.query(`
+                    SELECT
+                        EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('month', timezone('Europe/Berlin', m.timestamp))))::integer AS ts,
+                        SUM(value) AS value,
+                        d.sub_type AS type
+                    FROM
+                        measurements AS m
+                    JOIN
+                        devices AS d ON d.id = m.device_id
+                    JOIN
+                        organisations AS o ON d.id = o.device_id
+                    WHERE
+                        o.organisation_id = '1'
+                        AND m.type = 5
+                        AND m.timestamp >= TO_TIMESTAMP(1704106800) 
+                        AND m.timestamp < TO_TIMESTAMP(1706698800)
+                    GROUP BY
+                        date_trunc('month', timezone('Europe/Berlin', m.timestamp)),
+                        d.sub_type
+                    ORDER BY
+                        ts,
+                        type;
+                `);
+
+                console.log('Result:', result[0]);
+
+                console.timeEnd('queryTime');
+            } catch (error) {
+                console.error('Error during the execution:', error);
+            }
+            break;
+        default:
+            break;
+    }
+}
+
 module.exports = {
     initializeDatabase,
     createAndPopulateDevices,
     createAndPopulateMeasurements,
-    createAndPopulateOrganisations
+    createAndPopulateOrganisations,
+    performQuery
 };

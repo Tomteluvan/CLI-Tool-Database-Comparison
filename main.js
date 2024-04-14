@@ -1,45 +1,64 @@
 const readline = require('readline');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
-const { createAndPopulateDevices, createAndPopulateMeasurements, createAndPopulateOrganisations, initializeDatabase } = require('./timescaledb/timescaledb_generate_data');
+const { createAndPopulateDevices, createAndPopulateMeasurements, createAndPopulateOrganisations, initializeDatabase, performQuery } = require('./timescaledb/timescaledb_generate_data');
+const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres } = require('./postgres/postgreSQL_generate_data');
 
 const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
+    input: process.stdin,
+    output: process.stdout
 });
 
 let numDevices, numMeasurements, numOrganisations;
 let devicesData, measurementsData, organisationsData;
 
 function displayMainMenu() {
-  console.log('\nMain Menu:');
-  console.log('1. Generate Data');
-  console.log('2. Update databases');
-  console.log('3. Perform Queries');
-  console.log('4. Exit');
-  rl.question('Select an option: ', handleMainMenuSelection);
+    console.log('\nMain Menu:');
+    console.log('1. Generate Data');
+    console.log('2. Update databases');
+    console.log('3. Perform Queries');
+    console.log('4. Exit');
+    rl.question('Select an option: ', handleMainMenuSelection);
 }
 
 function displayDatabases() {
     console.log("\n Choose the database you want to use:");
     console.log("1. PostgreSQL");
     console.log("2. TimescaleDB");
-    console.log("3. Go back")
+    console.log("3. InfluxDB");
+    console.log("4. ClickHouse");
+    console.log("5. Go back")
     rl.question('Select an option: ', handleChoosenDatabase);
 }
+
+function displayQuery() {
+    console.log("1. Retrieve data for one specific device.");
+    console.log("2. Retrieve data for several devices within an organization.");
+    rl.question('Select an option: ', handleChoosenQuery);
+} 
 
 async function handleChoosenDatabase(option) {
     switch (option.trim()) {
         case '1':
-            
+            await initializeDatabasePostgres();
+            await createAndPopulateDevicesPostgres(devicesData);
+            await createAndPopulateMeasurementsPostgres(measurementsData);
+            await createAndPopulateOrganisationsPostgres(organisationsData);
+            displayDatabases();
             break;
         case '2':
-            const { sequelize, devices, measurements, organisations } = await initializeDatabase();
-            await createAndPopulateDevices(sequelize, devices, devicesData);
-            await createAndPopulateMeasurements(sequelize, measurements, measurementsData);
-            await createAndPopulateOrganisations(sequelize, organisations, organisationsData);
+            await initializeDatabase();
+            await createAndPopulateDevices(devicesData);
+            await createAndPopulateMeasurements(measurementsData);
+            await createAndPopulateOrganisations(organisationsData);
             displayDatabases();
             break;
         case '3':
+            // InfluxDB
+            break;
+        case '4':
+            // ClickHouse
+            break;    
+        case '5':
             displayMainMenu();
             break;
         default:
@@ -66,24 +85,28 @@ function handleMainMenuSelection(option) {
       break;
     case '2':
         displayDatabases();
-      break;
+        break;
     case '3':
-      performQueries();
-      displayMainMenu();
-      break;
+        displayQuery();
+        break;
     case '4':
-      rl.close();
-      break;
+        rl.close();
+        break;
     default:
-      console.log('Invalid option. Please select again.');
-      displayMainMenu();
-      break;
+        console.log('Invalid option. Please select again.');
+        displayMainMenu();
+        break;
   }
 }
 
+async function handleChoosenQuery(option) {
+    await performQuery(option);
+    displayMainMenu();
+}
+
 rl.on('close', () => {
-  console.log('Exiting...');
-  process.exit(0);
+    console.log('Exiting...');
+    process.exit(0);
 });
 
 displayMainMenu();
