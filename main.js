@@ -1,7 +1,8 @@
 const readline = require('readline');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
-const { createAndPopulateDevices, createAndPopulateMeasurements, createAndPopulateOrganisations, initializeDatabase, performQuery } = require('./timescaledb/timescaledb_generate_data');
+const { createAndPopulateDevicesTimecale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQuery } = require('./timescaledb/timescaledb_generate_data');
 const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres } = require('./postgres/postgreSQL_generate_data');
+const { createAndPopulateDevicesClickHouse, createAndPopulateMeasurementsClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse } = require('./clickhouse/clickhouse_generate_data');
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -16,7 +17,8 @@ function displayMainMenu() {
     console.log('1. Generate Data');
     console.log('2. Update databases');
     console.log('3. Perform Queries');
-    console.log('4. Exit');
+    console.log('4. Extract logs')
+    console.log('5. Exit');
     rl.question('Select an option: ', handleMainMenuSelection);
 }
 
@@ -49,17 +51,21 @@ async function handleChoosenDatabase(option) {
             displayDatabases();
             break;
         case '2':
-            await initializeDatabase();
-            await createAndPopulateDevices(devicesData);
-            await createAndPopulateMeasurements(measurementsData);
-            await createAndPopulateOrganisations(organisationsData);
+            await initializeDatabaseTimescale();
+            await createAndPopulateDevicesTimecale(devicesData);
+            await createAndPopulateMeasurementsTimescale(measurementsData);
+            await createAndPopulateOrganisationsTimescale(organisationsData);
             displayDatabases();
             break;
         case '3':
             // InfluxDB
             break;
         case '4':
-            // ClickHouse
+            await initializeDatabaseClickHouse();
+            await createAndPopulateDevicesClickHouse(devicesData);
+            await createAndPopulateMeasurementsClickHouse(measurementsData);
+            await createAndPopulateOrganisationsClickHouse(organisationsData);
+            displayDatabases();
             break;    
         case '5':
             displayMainMenu();
@@ -94,6 +100,9 @@ function handleMainMenuSelection(option) {
         displayQuery();
         break;
     case '4':
+        
+        break;
+    case '5':
         rl.close();
         break;
     default:

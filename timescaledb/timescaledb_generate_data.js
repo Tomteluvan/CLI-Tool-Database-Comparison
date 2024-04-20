@@ -7,7 +7,7 @@ const sequelize = new Sequelize('postgres://numoh:PASSWORD123@localhost:5432/tim
 
 let devices, measurements, organisations;
 
-async function initializeDatabase() {
+async function initializeDatabaseTimescale() {
 
     try {
         await sequelize.authenticate();
@@ -42,7 +42,7 @@ async function initializeDatabase() {
     }
 }
 
-async function createAndPopulateDevices(data) {
+async function createAndPopulateDevicesTimescale(data) {
     try {
 
         // Drop table if exists
@@ -91,7 +91,7 @@ async function createAndPopulateDevices(data) {
     }
 }
 
-async function createAndPopulateMeasurements(data) {
+async function createAndPopulateMeasurementsTimeScale(data) {
     try {
 
         // Drop table if exists
@@ -139,7 +139,7 @@ async function createAndPopulateMeasurements(data) {
     }
 }
 
-async function createAndPopulateOrganisations(data) {
+async function createAndPopulateOrganisationsTimescale(data) {
     try {
         
          // Drop table if exists
@@ -251,9 +251,9 @@ async function performQuery(option) {
 }
 
 module.exports = {
-    initializeDatabase,
-    createAndPopulateDevices,
-    createAndPopulateMeasurements,
-    createAndPopulateOrganisations,
+    initializeDatabaseTimescale,
+    createAndPopulateDevicesTimescale,
+    createAndPopulateMeasurementsTimeScale,
+    createAndPopulateOrganisationsTimescale,
     performQuery
 };
