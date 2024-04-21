@@ -1,16 +1,18 @@
 const { ClickHouse } = require('clickhouse');
+const { URL } = require('url');
 
 let clickhouse;
 
 async function initializeDatabaseClickHouse() {
+    const clickhouseUrl = new URL('http://localhost');
+    clickhouseUrl.port = 18123;
 
     clickhouse = new ClickHouse({
-        url: 'http://localhost',
-        port: 18123,
+        url: clickhouseUrl.toString(),
         debug: false,
         basicAuth: null,
         format: "json",
-    })
+    });
 }
 
 async function createAndPopulateDevicesClickHouse(devices) {
