@@ -1,6 +1,6 @@
 const readline = require('readline');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
-const { createAndPopulateDevicesTimecale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescaleAndPostgres } = require('./timescaledb/timescaledb_generate_data');
+const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescaleAndPostgres } = require('./timescaledb/timescaledb_generate_data');
 const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres } = require('./postgres/postgreSQL_generate_data');
 const { createAndPopulateDevicesClickHouse, createAndPopulateMeasurementsClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
 const { resolve } = require('path');
@@ -53,7 +53,7 @@ async function handleChoosenDatabase(option) {
             break;
         case '2':
             await initializeDatabaseTimescale();
-            await createAndPopulateDevicesTimecale(devicesData);
+            await createAndPopulateDevicesTimescale(devicesData);
             await createAndPopulateMeasurementsTimescale(measurementsData);
             await createAndPopulateOrganisationsTimescale(organisationsData);
             displayDatabases();

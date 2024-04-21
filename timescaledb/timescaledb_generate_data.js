@@ -91,7 +91,7 @@ async function createAndPopulateDevicesTimescale(data) {
     }
 }
 
-async function createAndPopulateMeasurementsTimeScale(data) {
+async function createAndPopulateMeasurementsTimescale(data) {
     try {
 
         // Drop table if exists
@@ -205,7 +205,7 @@ async function performQueryTimescaleAndPostgres(option) {
                         date_trunc('month', timezone('Europe/Berlin', m.timestamp)),
                         d.sub_type;
                 `);
-                console.log("Resultat:", result[0]); // Skriv ut resultatet
+                console.log("Resultat:", result); // Skriv ut resultatet
                 console.timeEnd('queryTime'); // Sluta mäta exekveringstiden och skriv ut
             } catch (error) {
                 console.error('Error during the execution:', error);
@@ -253,7 +253,7 @@ async function performQueryTimescaleAndPostgres(option) {
 module.exports = {
     initializeDatabaseTimescale,
     createAndPopulateDevicesTimescale,
-    createAndPopulateMeasurementsTimeScale,
+    createAndPopulateMeasurementsTimescale,
     createAndPopulateOrganisationsTimescale,
     performQueryTimescaleAndPostgres
 };
