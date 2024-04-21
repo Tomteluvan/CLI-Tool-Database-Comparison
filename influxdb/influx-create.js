@@ -27,4 +27,3 @@ writeApi
   .catch(e => {
     console.error('Error writing data point:', e)
   })
-
