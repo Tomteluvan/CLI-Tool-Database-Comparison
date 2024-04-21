@@ -1,4 +1,5 @@
 const { ClickHouse } = require('clickhouse');
+const { query } = require('express');
 const { URL } = require('url');
 
 let clickhouse;
@@ -170,7 +171,6 @@ async function performQueryForClickHouse(option) {
     switch(option) {
         case '1':
             try {
-                console.time('queryTime');
                 const result = await clickhouse.query(`
                     SELECT
                         toUnixTimestamp(dateTrunc('month', m.timestamp)) AS ts,
@@ -186,15 +186,25 @@ async function performQueryForClickHouse(option) {
                         ts ASC,
                         d.sub_type ASC;
                 `).toPromise();
+
+                const queryDuration = await clickhouse.query(`
+                    SELECT query_duration_ms
+                    FROM system.query_log 
+                    WHERE query LIKE '%SUM(value) AS value%' -- Replace with a unique part of your query 
+                    AND type = 'QueryFinish'
+                    ORDER BY event_time DESC
+                    LIMIT 1
+                `).toPromise();
+
+                console.log("Query duration in ms: ", queryDuration[0].query_duration_ms);
+
                 console.log("Resultat: ", result);
-                console.timeEnd('queryTime');
             } catch (error) {
                 console.error('Error during the execution:', error);
             }
             break;
         case '2':
             try {
-                console.time('queryTime');
                 const result = await clickhouse.query(`
                     SELECT
                         toUnixTimestamp(date_trunc('month', toDateTime(m.timestamp, 'Europe/Berlin'))) AS ts,
@@ -218,8 +228,20 @@ async function performQueryForClickHouse(option) {
                         ts ASC,
                         d.sub_type ASC;
                 `).toPromise();
+
+                const queryDuration = await clickhouse.query(`
+                    SELECT query_duration_ms
+                    FROM system.query_log 
+                    WHERE query LIKE '%SUM(value) AS value%' -- Replace with a unique part of your query 
+                    AND type = 'QueryFinish'
+                    ORDER BY event_time DESC
+                    LIMIT 1
+                `).toPromise();
+
+                console.log("Query duration in ms: ", queryDuration[0].query_duration_ms);
+                
                 console.log("Resultat: ", result);
-                console.timeEnd('queryTime');
+
             } catch (error) {
                 console.error('Error during the execution:', error);
             }
