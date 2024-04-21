@@ -1,7 +1,7 @@
 {
   "name": "database_scripts",
   "version": "1.0.0",
-  "description": "",
+  "description": "scripts for databases bachelor thesis project",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,8 +11,12 @@
   "license": "ISC",
   "dependencies": {
     "@clickhouse/client": "^1.0.0",
-    "@influxdata/influxdb-client": "^1.33.2",
-    "clickhouse": "^2.6.0"
+    "clickhouse": "^2.6.0",
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.2",
+    "sequelize-cli": "^6.6.2"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
