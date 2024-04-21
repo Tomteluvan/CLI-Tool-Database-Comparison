@@ -1,0 +1,6 @@
+[
+    {"name": "device_id", "type": "tag"},
+    {"name": "value", "type": "field", "dataType": "float"},
+    {"name": "type", "type": "tag"},
+    {"name": "timestamp", "type": "timestamp"}
+]

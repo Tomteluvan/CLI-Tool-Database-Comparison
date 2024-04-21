@@ -289,13 +289,17 @@ async function getAggregatedMeasurementsByDeviceAndType(clickhouse, deviceId, me
 
 
 
-// const deviceData = generateDeviceData(10)
-// const measurements = generateMeasurements(deviceData, 500, 5)
+const deviceData = generateDeviceData(10)
+// const measurements = generateMeasurements(deviceData, 20, 5)
 // const organisations = generateOrganisations(deviceData, 2)
+
+console.log(deviceData[0])
+console.log(deviceData[1])
+console.log(deviceData[2])
 
 
 // createAndPopulateDevices(client,deviceData)
 // createAndPopulateMeasurements(client, measurements)
 // createAndPopulateOrganisations(client, organisations)
 
-getAggregatedMeasurementsByDeviceAndType(client, "71315ca1-53c2-4cad-82f4-17e155d5ec01",2,"2024-04-09 09:00:00","2024-04-09 10:00:00","hour")
+// getAggregatedMeasurementsByDeviceAndType(client, "71315ca1-53c2-4cad-82f4-17e155d5ec01",2,"2024-04-09 09:00:00","2024-04-09 10:00:00","hour")
