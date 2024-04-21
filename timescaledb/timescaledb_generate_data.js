@@ -179,7 +179,7 @@ async function createAndPopulateOrganisationsTimescale(data) {
     }
 }
 
-async function performQuery(option) {
+async function performQueryTimescaleAndPostgres(option) {
     switch (option) {
         case '1':
             try {
@@ -255,5 +255,5 @@ module.exports = {
     createAndPopulateDevicesTimescale,
     createAndPopulateMeasurementsTimeScale,
     createAndPopulateOrganisationsTimescale,
-    performQuery
+    performQueryTimescaleAndPostgres
 };

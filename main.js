@@ -1,8 +1,9 @@
 const readline = require('readline');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
-const { createAndPopulateDevicesTimecale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQuery } = require('./timescaledb/timescaledb_generate_data');
+const { createAndPopulateDevicesTimecale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescaleAndPostgres } = require('./timescaledb/timescaledb_generate_data');
 const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres } = require('./postgres/postgreSQL_generate_data');
-const { createAndPopulateDevicesClickHouse, createAndPopulateMeasurementsClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse } = require('./clickhouse/clickhouse_generate_data');
+const { createAndPopulateDevicesClickHouse, createAndPopulateMeasurementsClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
+const { resolve } = require('path');
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -118,7 +119,19 @@ async function handleChoosenQueryForTimescaleAndPostgres() {
 
     return new Promise((resolve) => {
         rl.question('Select an option: ', async (option) => {
-            await performQuery(option);
+            await performQueryTimescaleAndPostgres(option);
+            resolve();
+        });
+    });
+}
+
+async function handleChoosenQueryForClickHouse() {
+    console.log("1. Retrieve data for one specific device.");
+    console.log("2. Retrieve data for several devices within an organization.");
+
+    return new Promise((resolve) => {
+        rl.question('Select an option: ', async (option) => {
+            await performQueryForClickHouse(option);
             resolve();
         });
     });
@@ -136,6 +149,9 @@ async function handleChoosenQuery(option) {
             break;
         case '3':
             // ClickHouse
+            await initializeDatabaseClickHouse();
+            await handleChoosenQueryForClickHouse();
+            displayMainMenu();
             break;
 
         default:

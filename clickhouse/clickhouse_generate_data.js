@@ -166,9 +166,70 @@ async function createAndPopulateOrganisationsClickHouse(assignments) {
     }
 }
 
+async function performQueryForClickHouse(option) {
+    switch(option) {
+        case '1':
+            try {
+                console.time('queryTime');
+                const result = await clickhouse.query(`
+                    SELECT
+                        toUnixTimestamp(dateTrunc('month', m.timestamp)) AS ts,
+                        sum(m.value) AS value,
+                        d.sub_type AS type
+                    FROM measurements AS m
+                    INNER JOIN devices AS d ON d.id = m.device_id
+                    WHERE (d.id = 'c28ace1e-cf28-4d2f-a7d3-9bc8631cd379') AND (m.type = 4) AND (m.timestamp >= '2024-01-01 12:00:00') AND (m.timestamp < '2024-02-01 12:00:00')
+                    GROUP BY
+                        ts,
+                        d.sub_type
+                    ORDER BY
+                        ts ASC,
+                        d.sub_type ASC;
+                `).toPromise();
+                console.log("Resultat: ", result);
+                console.timeEnd('queryTime');
+            } catch (error) {
+                console.error('Error during the execution:', error);
+            }
+            break;
+        case '2':
+            try {
+                console.time('queryTime');
+                const result = await clickhouse.query(`
+                    SELECT
+                        toUnixTimestamp(date_trunc('month', toDateTime(m.timestamp, 'Europe/Berlin'))) AS ts,
+                        SUM(value) AS value,
+                        d.sub_type AS type
+                    FROM
+                        measurements AS m
+                    JOIN
+                        devices AS d ON d.id = m.device_id
+                    JOIN
+                        organisations AS o ON d.id = o.device_id
+                    WHERE
+                        o.organisation_id = '1'
+                        AND m.type = 5
+                        AND m.timestamp >= toDateTime(1704106800)
+                        AND m.timestamp < toDateTime(1706698800)
+                    GROUP BY
+                        ts,
+                        d.sub_type
+                    ORDER BY
+                        ts ASC,
+                        d.sub_type ASC;
+                `).toPromise();
+                console.log("Resultat: ", result);
+                console.timeEnd('queryTime');
+            } catch (error) {
+                console.error('Error during the execution:', error);
+            }
+    }
+}
+
 module.exports = {
     initializeDatabaseClickHouse,
     createAndPopulateDevicesClickHouse,
     createAndPopulateMeasurementsClickHouse,
-    createAndPopulateOrganisationsClickHouse
+    createAndPopulateOrganisationsClickHouse,
+    performQueryForClickHouse
 };
