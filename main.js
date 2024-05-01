@@ -1,7 +1,7 @@
 const readline = require('readline');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
-const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescaleAndPostgres } = require('./timescaledb/timescaledb_generate_data');
-const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres } = require('./postgres/postgreSQL_generate_data');
+const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
+const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
 const { createAndPopulateDevicesClickHouse, createAndPopulateMeasurementsClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
 const { resolve } = require('path');
 
@@ -35,10 +35,11 @@ function displayDatabases() {
 
 function displayQuery() {
     console.log("\nChoose the database you want to perform query in:");
-    console.log("1. PostgreSQL or TimescaleDB");
-    console.log("2. InfluxDB");
-    console.log("3. ClickHouse");
-    console.log("4. Go back")
+    console.log("1. PostgreSQL");
+    console.log("2. TimescaleDB")
+    console.log("3. InfluxDB");
+    console.log("4. ClickHouse");
+    console.log("5. Go back")
     rl.question('Select an option: ', handleChoosenQuery);
 } 
 
@@ -113,13 +114,25 @@ function handleMainMenuSelection(option) {
   }
 }
 
-async function handleChoosenQueryForTimescaleAndPostgres() {
+async function handleChoosenQueryForPostgres() {
     console.log("1. Retrieve data for one specific device.");
     console.log("2. Retrieve data for several devices within an organization.");
 
     return new Promise((resolve) => {
         rl.question('Select an option: ', async (option) => {
-            await performQueryTimescaleAndPostgres(option);
+            await performQueryPostgres(option);
+            resolve();
+        });
+    });
+}
+
+async function handleChoosenQueryForTimescale() {
+    console.log("1. Retrieve data for one specific device.");
+    console.log("2. Retrieve data for several devices within an organization.");
+
+    return new Promise((resolve) => {
+        rl.question('Select an option: ', async (option) => {
+            await performQueryTimescale(option);
             resolve();
         });
     });
@@ -141,19 +154,26 @@ async function handleChoosenQueryForClickHouse() {
 async function handleChoosenQuery(option) {
     switch (option) {
         case '1':
-            await handleChoosenQueryForTimescaleAndPostgres();
+            await handleChoosenQueryForPostgres();
+            await findAndExtractDataPostgres();
             displayMainMenu();
             break;
         case '2':
-            // InfluxDB
+            await handleChoosenQueryForTimescale();
+            await findAndExtractDataTimescale();
+            displayMainMenu();
             break;
         case '3':
-            // ClickHouse
+            // InfluxDB
+            break;
+        case '4':
             await initializeDatabaseClickHouse();
             await handleChoosenQueryForClickHouse();
             displayMainMenu();
             break;
-
+        case '5':
+            displayMainMenu();
+            break;
         default:
             break;
     }

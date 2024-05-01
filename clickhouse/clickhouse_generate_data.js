@@ -1,6 +1,9 @@
 const { ClickHouse } = require('clickhouse');
 const { query } = require('express');
 const { URL } = require('url');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
 
 let clickhouse;
 
@@ -168,84 +171,87 @@ async function createAndPopulateOrganisationsClickHouse(assignments) {
 }
 
 async function performQueryForClickHouse(option) {
+    const numbers = [];
+    let sum = 0;
+    let k = 100;
+
     switch(option) {
         case '1':
             try {
-                const result = await clickhouse.query(`
-                    SELECT
-                        toUnixTimestamp(dateTrunc('month', m.timestamp)) AS ts,
-                        sum(m.value) AS value,
-                        d.sub_type AS type
-                    FROM measurements AS m
-                    INNER JOIN devices AS d ON d.id = m.device_id
-                    WHERE (d.id = 'c28ace1e-cf28-4d2f-a7d3-9bc8631cd379') AND (m.type = 4) AND (m.timestamp >= '2024-01-01 12:00:00') AND (m.timestamp < '2024-02-01 12:00:00')
-                    GROUP BY
-                        ts,
-                        d.sub_type
-                    ORDER BY
-                        ts ASC,
-                        d.sub_type ASC;
-                `).toPromise();
+                const dockerCommand = `docker exec clickhouse-server clickhouse-client --time -q "SELECT toUnixTimestamp(dateTrunc('month', m.timestamp)) AS ts, sum(m.value) AS value, d.sub_type AS type FROM measurements AS m INNER JOIN devices AS d ON d.id = m.device_id WHERE (d.id = 'c28ace1e-cf28-4d2f-a7d3-9bc8631cd379') AND (m.type = 4) AND (m.timestamp >= '2024-01-01 12:00:00') AND (m.timestamp < '2024-02-01 12:00:00') GROUP BY ts, d.sub_type ORDER BY ts ASC, d.sub_type ASC;"`;
+                
+                for (let i = 0; i < k; i++) {
+                    console.log(`Running iteration ${i + 1}`);
 
-                const queryDuration = await clickhouse.query(`
-                    SELECT query_duration_ms
-                    FROM system.query_log 
-                    WHERE query LIKE '%SUM(value) AS value%' -- Replace with a unique part of your query 
-                    AND type = 'QueryFinish'
-                    ORDER BY event_time DESC
-                    LIMIT 1
-                `).toPromise();
+                    const { stdout, stderr } = await execAsync(dockerCommand);
 
-                console.log("Query duration in ms: ", queryDuration[0].query_duration_ms);
+                    console.log(`Execution Time: ${stderr * 1000} ms`);
 
-                console.log("Resultat: ", result);
+                    numbers.push(stderr * 1000);
+                    sum += stderr * 1000;
+                }
+
+                const mean = sum / k;
+
+                calculateStatistics(mean, numbers);
+
             } catch (error) {
-                console.error('Error during the execution:', error);
+                console.error(`Error executing query: ${error.message}`);
             }
             break;
         case '2':
             try {
-                const result = await clickhouse.query(`
-                    SELECT
-                        toUnixTimestamp(date_trunc('month', toDateTime(m.timestamp, 'Europe/Berlin'))) AS ts,
-                        SUM(value) AS value,
-                        d.sub_type AS type
-                    FROM
-                        measurements AS m
-                    JOIN
-                        devices AS d ON d.id = m.device_id
-                    JOIN
-                        organisations AS o ON d.id = o.device_id
-                    WHERE
-                        o.organisation_id = '1'
-                        AND m.type = 5
-                        AND m.timestamp >= toDateTime(1704106800)
-                        AND m.timestamp < toDateTime(1706698800)
-                    GROUP BY
-                        ts,
-                        d.sub_type
-                    ORDER BY
-                        ts ASC,
-                        d.sub_type ASC;
-                `).toPromise();
+                const dockerCommand = `docker exec clickhouse-server clickhouse-client --time -q "SELECT toUnixTimestamp(date_trunc('month', toDateTime(m.timestamp, 'Europe/Berlin'))) AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '2' AND m.type = 5 AND m.timestamp >= toDateTime(1704106800) AND m.timestamp < toDateTime(1706698800) GROUP BY ts, d.sub_type ORDER BY ts ASC, d.sub_type ASC;"`;
 
-                const queryDuration = await clickhouse.query(`
-                    SELECT query_duration_ms
-                    FROM system.query_log 
-                    WHERE query LIKE '%SUM(value) AS value%' -- Replace with a unique part of your query 
-                    AND type = 'QueryFinish'
-                    ORDER BY event_time DESC
-                    LIMIT 1
-                `).toPromise();
+                for (let i = 0; i < k; i++) {
+                    console.log(`Running iteration ${i + 1}`);
 
-                console.log("Query duration in ms: ", queryDuration[0].query_duration_ms);
-                
-                console.log("Resultat: ", result);
+                    const { stdout, stderr } = await execAsync(dockerCommand);
+
+                    console.log(`Execution Time: ${stderr * 1000} ms`);
+
+                    numbers.push(stderr * 1000);
+                    sum += stderr * 1000;
+                }
+
+                const mean = sum / k;
+
+                calculateStatistics(mean, numbers);
 
             } catch (error) {
                 console.error('Error during the execution:', error);
             }
     }
+}
+
+function calculateStatistics(mean, numbers) {
+
+    console.log("");
+
+    console.log("Mean:", mean + " ms");
+
+    // Step 1: Calculate the difference between each number and the mean
+    const differences = numbers.map(number => number - mean);
+
+    // Step 2: Square each of these differences
+    const squaredDifferences = differences.map(diff => diff * diff);
+
+    // Step 3: Find the mean of the squared differences
+    const squaredDifferencesMean = squaredDifferences.reduce((sum, diff) => sum + diff, 0) / squaredDifferences.length;
+
+    // Step 4: Take the square root of the mean of the squared differences
+    const standardDeviation = Math.sqrt(squaredDifferencesMean);
+
+    console.log("Standard Deviation:", standardDeviation.toFixed(2) + " ms");
+    const cv = (standardDeviation / mean) * 100;
+
+    console.log("Coefficient of Variation:", cv.toFixed(2) + "%");
+
+    const minTimeAverage = mean - standardDeviation;
+    const maxTimeAverage = mean + standardDeviation;
+
+    console.log("Min Time:", minTimeAverage.toFixed(2) + " ms");
+    console.log("Max Time:", maxTimeAverage.toFixed(2) + " ms");
 }
 
 module.exports = {
