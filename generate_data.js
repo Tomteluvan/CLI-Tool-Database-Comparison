@@ -25,12 +25,13 @@ function generateMeasurementData(devicesData, periodTime) {
     const measurementsBatch = [];
 
     console.time('faker time');
+    const endDate = null;
 
     // Initialize the start date and end date
     if (periodTime === 1) {
-        const endDate = new Date('2024-02-01T00:00:00Z');    
+        endDate = new Date('2024-02-01T00:00:00Z');    
     } else {
-        const endDate = new Date('2025-01-01T12:00:00Z');
+        endDate = new Date('2025-01-01T12:00:00Z');
     }
 
     for (const device of devicesData) {
