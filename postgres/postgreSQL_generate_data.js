@@ -278,7 +278,6 @@ async function extractExecutionTime(file) {
                 if (columns.length >= 3) {
                     numbers.push(parseInt(columns[2]) * 0.001);
                     sum += parseInt(columns[2] * 0.001);
-                    console.log("Number:", columns[2])
                 }
             });
 
