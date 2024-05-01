@@ -1,4 +1,9 @@
-const Sequelize = require('sequelize')
+const Sequelize = require('sequelize');
+const { exec } = require('child_process');
+const util = require('util');
+const fs = require('fs');
+const readFileAsync = util.promisify(fs.readFile);
+const execProm = util.promisify(exec);
 
 const sequelize = new Sequelize('postgres://numoh:PASSWORD123@localhost:5432/timescaledb_for_test', {
     dialect: 'postgres',
@@ -57,6 +62,12 @@ async function createAndPopulateDevicesTimescale(data) {
                 sub_type TEXT NOT NULL
         )`);
 
+        // Single-column index on id
+        await sequelize.query(`CREATE INDEX idx_devices_id ON devices (id);`);
+
+        // Single-column index on sub_type
+        await sequelize.query(`CREATE INDEX idx_devices_sub_type ON devices (sub_type);`);
+
         console.time('insertTime');
 
         // Define batch size
@@ -106,6 +117,16 @@ async function createAndPopulateMeasurementsTimescale(data) {
                 timestamp timestamp with time zone NOT NULL
         )`);
 
+        // Create single-column index on device_id
+        await sequelize.query(`CREATE INDEX idx_measurements_device_id ON measurements (device_id);`);
+
+        // Create single-column index on type
+        await sequelize.query(`CREATE INDEX idx_measurements_type ON measurements (type);`);
+
+        // Create single-column index on timestamp
+        await sequelize.query(`CREATE INDEX idx_measurements_timestamp ON measurements (timestamp);`);
+
+        // Create hypertable
         await sequelize.query(`SELECT create_hypertable('measurements', by_range('timestamp'));`);
 
         console.time('insertTime');
@@ -142,19 +163,22 @@ async function createAndPopulateMeasurementsTimescale(data) {
 async function createAndPopulateOrganisationsTimescale(data) {
     try {
         
-         // Drop table if exists
-         await sequelize.query(`DROP TABLE IF EXISTS organisations;`);
+        // Drop table if exists
+        await sequelize.query(`DROP TABLE IF EXISTS organisations;`);
         
-         // Create organisations table
-         await sequelize.query(`
-             CREATE TABLE organisations (
-                 organisation_id INTEGER NOT NULL,
-                 device_id UUID NOT NULL
-         )`);
+        // Create organisations table
+        await sequelize.query(`
+            CREATE TABLE organisations (
+                organisation_id INTEGER NOT NULL,
+                device_id UUID NOT NULL
+        )`);
+
+        // Single-column index on id
+        await sequelize.query(`CREATE INDEX idx_organisations_organisation_id ON organisations (organisation_id);`);
  
          console.time('insertTime');
  
-         // Define batch size
+        // Define batch size
         const batchSize = 1000; // Adjust based on your system's capacity
         
         for (let i = 0; i < data.length; i += batchSize) {
@@ -179,70 +203,42 @@ async function createAndPopulateOrganisationsTimescale(data) {
     }
 }
 
-async function performQueryTimescaleAndPostgres(option) {
+function run_pgbench(command) {
+    return new Promise((resolve, reject) => {
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            if (stderr) {
+                reject(stderr);
+                return;
+            }
+            resolve(stdout);
+        });
+    });
+}
+
+async function performQueryTimescale(option) {
     switch (option) {
         case '1':
             try {
-                console.time('queryTime'); // Starta mätningen av exekveringstiden
-                const result = await sequelize.query(`
-                    SELECT
-                        extract(epoch from timezone('Europe/Berlin', date_trunc('month', timezone('Europe/Berlin', m.timestamp))))::integer AS ts,
-                        SUM(value) AS value,
-                        d.sub_type AS type
-                    FROM
-                        measurements AS m
-                    JOIN
-                        devices AS d ON d.id = m.device_id
-                    WHERE
-                        d.id = 'c28ace1e-cf28-4d2f-a7d3-9bc8631cd379'
-                        AND m.type = 4
-                        AND m.timestamp >= to_timestamp(1704106800)
-                        AND m.timestamp < to_timestamp(1706698800)
-                    GROUP BY
-                        date_trunc('month', timezone('Europe/Berlin', m.timestamp)),
-                        d.sub_type
-                    ORDER BY
-                        date_trunc('month', timezone('Europe/Berlin', m.timestamp)),
-                        d.sub_type;
-                `);
-                console.log("Resultat:", result); // Skriv ut resultatet
-                console.timeEnd('queryTime'); // Sluta mäta exekveringstiden och skriv ut
+                const command = `docker exec timescaledb_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_one_device_timescale.sql --transactions=100 --log`;
+                const result = await run_pgbench(command);
+                console.log("Benchmarked 100 queries successfully!");
+                console.log(result);
             } catch (error) {
-                console.error('Error during the execution:', error);
-            }
+                console.error("Error occurred:", error);
+            }            
             break;
         case '2':
             try {
-                console.time('queryTime');
-                const result = await sequelize.query(`
-                    SELECT
-                        EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('month', timezone('Europe/Berlin', m.timestamp))))::integer AS ts,
-                        SUM(value) AS value,
-                        d.sub_type AS type
-                    FROM
-                        measurements AS m
-                    JOIN
-                        devices AS d ON d.id = m.device_id
-                    JOIN
-                        organisations AS o ON d.id = o.device_id
-                    WHERE
-                        o.organisation_id = '1'
-                        AND m.type = 5
-                        AND m.timestamp >= TO_TIMESTAMP(1704106800) 
-                        AND m.timestamp < TO_TIMESTAMP(1706698800)
-                    GROUP BY
-                        date_trunc('month', timezone('Europe/Berlin', m.timestamp)),
-                        d.sub_type
-                    ORDER BY
-                        ts,
-                        type;
-                `);
-
-                console.log('Result:', result[0]);
-
-                console.timeEnd('queryTime');
+                const command = `docker exec timescaledb_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_multipleDevices_in_timescale.sql --transactions=100 --log`;
+                const result = await run_pgbench(command);
+                console.log("Benchmarked 100 queries successfully!");
+                console.log(result);
             } catch (error) {
-                console.error('Error during the execution:', error);
+                console.error('Error occurred:', error);
             }
             break;
         default:
@@ -250,10 +246,97 @@ async function performQueryTimescaleAndPostgres(option) {
     }
 }
 
+async function findAndExtractDataTimescale() {
+    try {
+        // Step 1: Find the file inside the Docker container
+        const findCommand = 'docker exec timescaledb_container sh -c "find / -type f -name \'pgbench_log.*\' 2>/dev/null"';
+        const result = await execProm(findCommand).catch(err => {
+            if (!err.stdout.trim()) {
+                throw err;  // If there's no output, rethrow the error
+            }
+            return err;  // If there is output, treat it as a success case
+        });
+        const fileList = result.stdout.split('\n').filter(Boolean);
+        
+        if (fileList.length === 0) {
+            console.log('No files found.');
+            return;
+        }
+        
+        const file = fileList[0].trim();
+        console.log('File found:', file);
+
+        const command = `docker cp timescaledb_container:${file} .`;
+
+        // Execute the command
+        await execProm(command);
+        console.log('File copied successfully to the current directory.');
+
+        await extractExecutionTime(file.slice(1));
+
+        // Delete the file after processing
+        await execProm(`docker exec timescaledb_container sh -c "rm '${file}'"`);
+        console.log('File deleted successfully:', file);
+
+    } catch (err) {
+        console.error('Error during file operation:', err);
+    }
+}
+
+async function extractExecutionTime(file) {
+    return readFileAsync(file, 'utf8')
+        .then(data => {
+            // Split the data by lines
+            const lines = data.split('\n');
+
+            // Extract the third column from each line and calculate the sum
+            let sum = 0;
+
+            const numbers = [];
+
+            lines.forEach(line => {
+                const columns = line.trim().split(/\s+/);
+                if (columns.length >= 3) {
+                    numbers.push(parseInt(columns[2]) * 0.001);
+                    sum += parseInt(columns[2] * 0.001);
+                }
+            });
+
+            const mean = sum / 100;
+
+            console.log("Mean", mean + " ms");
+
+            // Step 1: Calculate the difference between each number and the mean
+            const differences = numbers.map(number => number - mean);
+
+            // Step 2: Square each of these differences
+            const squaredDifferences = differences.map(diff => diff * diff);
+
+            // Step 3: Find the mean of the squared differences
+            const squaredDifferencesMean = squaredDifferences.reduce((sum, diff) => sum + diff, 0) / squaredDifferences.length;
+
+            // Step 4: Take the square root of the mean of the squared differences
+            const standardDeviation = Math.sqrt(squaredDifferencesMean);
+
+            console.log("Standard Deviation:", standardDeviation + " ms");
+''
+            const cv = standardDeviation / mean * 100;
+
+            console.log("Coefficient of Variation:", cv.toFixed(2) + "%");
+
+            console.log("Min Time:", mean - standardDeviation + " ms");
+            console.log("Max Time:", mean + standardDeviation + " ms");
+        })
+        .catch(err => {
+            console.error('Error reading file: ', err);
+        });
+}
+
 module.exports = {
     initializeDatabaseTimescale,
     createAndPopulateDevicesTimescale,
     createAndPopulateMeasurementsTimescale,
     createAndPopulateOrganisationsTimescale,
-    performQueryTimescaleAndPostgres
+    performQueryTimescale,
+    findAndExtractDataTimescale
 };
