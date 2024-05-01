@@ -83,15 +83,12 @@ function handleMainMenuSelection(option) {
       rl.question('Enter the number of devices: ', (devices) => {
         numDevices = parseInt(devices);
         devicesData = generateDeviceData(numDevices)
-        rl.question('Enter the number of measurement types: ', (measurements) => {
-          numMeasurements = parseInt(measurements);
-          measurementsData = generateMeasurementData(devicesData, numMeasurements)
-          rl.question('Enter the number of organisations: ', (organisations) => {
-            numOrganisations = parseInt(organisations);
-            organisationsData = generateOrganisationData(devicesData, numOrganisations)
-            console.log("\nNow, update the database with the generated data.");
-            displayMainMenu();
-          });
+        rl.question('For a one-month period, type (1). For a one-year period, type (2):', (periodTime) => {
+          numPeriodTime = parseInt(periodTime);
+          measurementsData = generateMeasurementData(devicesData, numPeriodTime)
+          organisationsData = generateOrganisationData(devicesData)
+          console.log("\nNow, update the database with the generated data.");
+          displayMainMenu();
         });
       });
       break;

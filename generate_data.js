@@ -21,17 +21,24 @@ function generateDeviceData(numOfDevices) {
     return _devices;
 }
 
-function generateMeasurementData(devicesData, numOfTypes) {
+function generateMeasurementData(devicesData, periodTime) {
     const measurementsBatch = [];
 
-    console.time('faker time')
+    console.time('faker time');
+
+    // Initialize the start date and end date
+    if (periodTime === 1) {
+        const endDate = new Date('2024-02-01T00:00:00Z');    
+    } else {
+        const endDate = new Date('2025-01-01T12:00:00Z');
+    }
 
     for (const device of devicesData) {
 
         let genHour = new Date('2024-01-01T12:00:00Z')
 
-        while (genHour <= new Date('2024-02-01T12:00:00Z')) {
-            for (let typeId = 1; typeId <= numOfTypes; typeId++) {
+        while (genHour <= endDate) {
+            for (let typeId = 1; typeId <= 8; typeId++) {
                 
                 measurementsBatch.push({
                     device_id: device.device_id,
