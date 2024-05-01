@@ -48,37 +48,21 @@ function generateMeasurementData(devicesData, numOfTypes) {
     return measurementsBatch;
 }
 
-function generateOrganisationData(devices, numOfOrganisations) {
-    // Creates organisation ids and also assigns the device uuids to those 
-    // Assigning 50% of the devices to the first organisations then the rest equally
-    const assignments = [];
-    const devicesPerOrg = Math.floor(devices.length / numOfOrganisations);
-    let currentOrg = 1;
-    let currentOrgDeviceCount = 0;
+function generateOrganisationData(devices) {
+    
+     // Assigns all devices to a single organisation (organisation_id = 1).
+     const assignments = [];
 
-    console.time("faker time")
-    devices.forEach((device, index) => {
-        if (currentOrg === 1 && index >= devices.length / 2) {
-            // Move to the next organisation after assigning half to the first
-            currentOrg++;
-            currentOrgDeviceCount = 0;
-        } else if (currentOrgDeviceCount >= devicesPerOrg && currentOrg < numOfOrganisations) {
-            // Move to the next organisation after equal distribution, except for the last one
-            currentOrg++;
-            currentOrgDeviceCount = 0;
-        }
-
-        assignments.push({
-            organisation_id: currentOrg,
-            device_id: device.device_id,
-        });
-
-        currentOrgDeviceCount++;
-    });
-
-    console.timeEnd("faker time")
-
-    return assignments;
+     console.time("assignment time");
+     devices.forEach((device) => {
+         assignments.push({
+             organisation_id: 1,
+             device_id: device.device_id,
+         });
+     });
+     console.timeEnd("assignment time");
+ 
+     return assignments;
 }
 
 module.exports = {

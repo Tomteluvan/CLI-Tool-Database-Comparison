@@ -216,7 +216,7 @@ async function performQueryPostgres(option) {
     switch (option) {
         case '1':
             try {
-                const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_one_device_postgres.sql --transactions=10 --log`;
+                const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_one_device_postgres.sql --transactions=100 --log`;
                 const result = await run_pgbench(command);
                 console.log("Benchmarked 100 queries successfully!");
                 console.log(result);
@@ -226,7 +226,7 @@ async function performQueryPostgres(option) {
             break;
         case '2':
             try {
-                const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_multipleDevices_in_postgres.sql --transactions=10 --log`;
+                const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_multipleDevices_in_postgres.sql --transactions=100 --log`;
                 const result = await run_pgbench(command);
                 console.log("Benchmarked 100 queries successfully!");
                 console.log(result);
@@ -296,7 +296,7 @@ async function extractExecutionTime(file) {
                 }
             });
 
-            const mean = sum / 10;
+            const mean = sum / 100;
 
             console.log("Mean", mean + " ms");
 
