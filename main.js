@@ -18,8 +18,7 @@ function displayMainMenu() {
     console.log('1. Generate Data');
     console.log('2. Update databases');
     console.log('3. Perform Queries');
-    console.log('4. Extract logs')
-    console.log('5. Exit');
+    console.log('4. Exit');
     rl.question('Select an option: ', handleMainMenuSelection);
 }
 
@@ -99,9 +98,6 @@ function handleMainMenuSelection(option) {
         displayQuery();
         break;
     case '4':
-        
-        break;
-    case '5':
         rl.close();
         break;
     default:
