@@ -1,7 +1,7 @@
 const readline = require('readline');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
 const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale } = require('./timescaledb/timescaledb_generate_data');
-const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres } = require('./postgres/postgreSQL_generate_data');
+const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
 const { createAndPopulateDevicesClickHouse, createAndPopulateMeasurementsClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
 const { resolve } = require('path');
 
@@ -110,8 +110,8 @@ function handleMainMenuSelection(option) {
 async function handleChoosenQuery(option) {
     switch (option) {
         case '1':
-
             await performQueryPostgres();
+            await findAndExtractDataPostgres();
             displayMainMenu();
             break;
         case '2':
