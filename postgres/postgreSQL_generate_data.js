@@ -296,9 +296,7 @@ async function extractExecutionTime(file) {
                 }
             });
 
-            const sumInMilliseconds = sum * 0.001;
-
-            const mean = sumInMilliseconds / 10;
+            const mean = sum / 10;
 
             console.log("Mean", mean + " ms");
 
