@@ -1,7 +1,7 @@
 const readline = require('readline');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
-const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
-const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
+const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale } = require('./timescaledb/timescaledb_generate_data');
+const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres } = require('./postgres/postgreSQL_generate_data');
 const { createAndPopulateDevicesClickHouse, createAndPopulateMeasurementsClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
 const { resolve } = require('path');
 
@@ -107,61 +107,22 @@ function handleMainMenuSelection(option) {
   }
 }
 
-async function handleChoosenQueryForPostgres() {
-    console.log("1. Retrieve data for one specific device.");
-    console.log("2. Retrieve data for several devices within an organization.");
-
-    return new Promise((resolve) => {
-        rl.question('Select an option: ', async (option) => {
-            await performQueryPostgres(option);
-            resolve();
-        });
-    });
-}
-
-async function handleChoosenQueryForTimescale() {
-    console.log("1. Retrieve data for one specific device.");
-    console.log("2. Retrieve data for several devices within an organization.");
-
-    return new Promise((resolve) => {
-        rl.question('Select an option: ', async (option) => {
-            await performQueryTimescale(option);
-            resolve();
-        });
-    });
-}
-
-async function handleChoosenQueryForClickHouse() {
-    console.log("1. Retrieve data for one specific device.");
-    console.log("2. Retrieve data for several devices within an organization.");
-
-    return new Promise((resolve) => {
-        rl.question('Select an option: ', async (option) => {
-            await performQueryForClickHouse(option);
-            resolve();
-        });
-    });
-}
-
-
 async function handleChoosenQuery(option) {
     switch (option) {
         case '1':
-            await handleChoosenQueryForPostgres();
-            await findAndExtractDataPostgres();
+
+            await performQueryPostgres();
             displayMainMenu();
             break;
         case '2':
-            await handleChoosenQueryForTimescale();
-            await findAndExtractDataTimescale();
+            await performQueryTimescale();
             displayMainMenu();
             break;
         case '3':
             // InfluxDB
             break;
         case '4':
-            await initializeDatabaseClickHouse();
-            await handleChoosenQueryForClickHouse();
+            await performQueryForClickHouse();
             displayMainMenu();
             break;
         case '5':

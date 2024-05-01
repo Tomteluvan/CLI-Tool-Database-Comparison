@@ -219,30 +219,18 @@ function run_pgbench(command) {
     });
 }
 
-async function performQueryTimescale(option) {
-    switch (option) {
-        case '1':
-            try {
-                const command = `docker exec timescaledb_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_one_device_timescale.sql --transactions=100 --log`;
-                const result = await run_pgbench(command);
-                console.log("Benchmarked 100 queries successfully!");
-                console.log(result);
-            } catch (error) {
-                console.error("Error occurred:", error);
-            }            
-            break;
-        case '2':
-            try {
-                const command = `docker exec timescaledb_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_multipleDevices_in_timescale.sql --transactions=100 --log`;
-                const result = await run_pgbench(command);
-                console.log("Benchmarked 100 queries successfully!");
-                console.log(result);
-            } catch (error) {
-                console.error('Error occurred:', error);
-            }
-            break;
-        default:
-            break;
+async function performQueryTimescale() {
+    try {
+        const command = `docker exec timescaledb_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_multipleDevices_in_timescale.sql --transactions=100 --log`;
+        const result = await run_pgbench(command);
+
+        console.log("Benchmarked 100 queries successfully!");
+
+        console.log(result);
+
+        await findAndExtractDataTimescale();
+    } catch (error) {
+        console.error('Error occurred:', error);
     }
 }
 
@@ -337,6 +325,5 @@ module.exports = {
     createAndPopulateDevicesTimescale,
     createAndPopulateMeasurementsTimescale,
     createAndPopulateOrganisationsTimescale,
-    performQueryTimescale,
-    findAndExtractDataTimescale
+    performQueryTimescale
 };
