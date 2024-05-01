@@ -10,7 +10,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-let numDevices, numMeasurements, numOrganisations;
+let numDevices, numPeriodOfTime;
 let devicesData, measurementsData, organisationsData;
 
 function displayMainMenu() {
@@ -83,9 +83,9 @@ function handleMainMenuSelection(option) {
       rl.question('Enter the number of devices: ', (devices) => {
         numDevices = parseInt(devices);
         devicesData = generateDeviceData(numDevices)
-        rl.question('For a one-month period, type (1). For a one-year period, type (2):', (periodTime) => {
-          numPeriodTime = parseInt(periodTime);
-          measurementsData = generateMeasurementData(devicesData, numPeriodTime)
+        rl.question('For a one-month period, type (1). For a one-year period, type (2): ', (periodTime) => {
+          numPeriodOfTime = parseInt(periodTime);
+          measurementsData = generateMeasurementData(devicesData, numPeriodOfTime)
           organisationsData = generateOrganisationData(devicesData)
           console.log("\nNow, update the database with the generated data.");
           displayMainMenu();
