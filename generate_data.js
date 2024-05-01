@@ -25,7 +25,7 @@ function generateMeasurementData(devicesData, periodTime) {
     const measurementsBatch = [];
 
     console.time('faker time');
-    const endDate = null;
+    let endDate = null;
 
     // Initialize the start date and end date
     if (periodTime === 1) {
