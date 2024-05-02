@@ -22,11 +22,11 @@ function generateDeviceData(numOfDevices) {
     return _devices;
 }
 
-function generateMeasurementData(devicesData, periodTime) {
+async function generateMeasurementData(devicesData, periodTime) {
 
-    initializeDatabaseClickHouse();
+    await initializeDatabaseClickHouse();
 
-    createAndPopulateMeasurementsClickHouse();
+    await createAndPopulateMeasurementsClickHouse();
 
     const BATCH_SIZE = 50000;
 
