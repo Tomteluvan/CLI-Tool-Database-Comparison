@@ -95,7 +95,7 @@ async function createAndPopulateMeasurementsClickHouse() {
 
 async function saveData(measurements) {
 
-    console.time('insertTime');
+    // console.time('insertTime');
 
     const batchSize = 500;
 
@@ -116,7 +116,7 @@ async function saveData(measurements) {
         `).toPromise();
     }
 
-    console.timeEnd('insertTime');
+    // console.timeEnd('insertTime');
 
     console.log(`${measurements.length} measurements inserted into measurements table.`);
 }
