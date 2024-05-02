@@ -1,5 +1,5 @@
 const {faker} = require("@faker-js/faker")
-const { saveData, createAndPopulateMeasurementsClickHouse } = require('./clickhouse/clickhouse_generate_data');
+const { saveData, createAndPopulateMeasurementsClickHouse, initializeDatabaseClickHouse } = require('./clickhouse/clickhouse_generate_data');
 
 faker.seed(12345);
 
@@ -23,6 +23,8 @@ function generateDeviceData(numOfDevices) {
 }
 
 function generateMeasurementData(devicesData, periodTime) {
+
+    initializeDatabaseClickHouse();
 
     createAndPopulateMeasurementsClickHouse();
 
