@@ -40,7 +40,7 @@ function generateMeasurementData(devicesData, periodTime) {
 
         while (genHour <= endDate) {
             for (let typeId = 1; typeId <= 8; typeId++) {
-                
+
                 measurementsBatch.push({
                     device_id: device.device_id,
                     value: faker.number.float({ min: 0.0, max: 100.0 }),
