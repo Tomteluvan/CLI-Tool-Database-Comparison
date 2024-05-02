@@ -6,14 +6,20 @@ const org = 'quandify';
 const token = 'M2comoATFn6FV5SkSwTlBeV4_g-Ecb9xb6v4LyzIKOy29k9Qze7rA-UPPvAerAqT0KSzrEwmO03hUq65BO76ow==';
 const bucket = 'measurements';
 
+const DELAY_BETWEEN_BATCHES_MS = 100;
+
 async function writeData(measurements, devices, assignments) {
     console.time('influx write');
 
     const deviceMap = new Map(devices.map(device => [device.device_id, device]));
     const assignmentMap = new Map(assignments.map(assign => [assign.device_id, assign]));
 
-    const BATCH_SIZE = 20000;
-    let points = [];
+    const writeApi = new InfluxDB({ url, token, timeout: 3000000 }).getWriteApi(org, bucket, 'ms');
+
+    const BATCH_SIZE = 10000; // Choose a batch size that suits your environment
+    let batchPoints = [];
+    let counter = 0;
+
 
     for (let i = 0; i < measurements.length; i++) {
         const measurement = measurements[i];
@@ -30,24 +36,30 @@ async function writeData(measurements, devices, assignments) {
                 .floatField('value', measurement.value)
                 .timestamp(measurement.timestamp);
 
-            points.push(point);
-        }
+            batchPoints.push(point);
+            // writeApi.writePoint(point)
 
-        // Write the batch and reset points array
-        if (points.length === BATCH_SIZE || i === measurements.length - 1) {
-            const writeApi = new InfluxDB({ url, token, timeout: 60000 }).getWriteApi(org, bucket, 'ms');
-            await writeApi.writePoints(points);
-            await writeApi.close();
-            points = []; // Reset the points array
+            // Write the batch when the batch size is reached or on the last iteration
+            if ( batchPoints.length >= BATCH_SIZE|| i === measurements.length - 1) {
+                writeApi.writePoints(batchPoints);
+                await writeApi.flush();
+                batchPoints = []; // Clear the array after writing
+                // await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES_MS)); // Delay before the next batch
+            }
+
+            // // Write each point as it's created
+            // writeApi.writePoint(point);
         }
     }
 
+    // Ensure all writes are completed before closing the API
+    await writeApi.close();
     console.log('Data points written successfully.');
     console.timeEnd('influx write');
 }
 
 // Generate and write example data
-const devices = generateDeviceData(500); // Adjust this as needed
+const devices = generateDeviceData(1000); // Adjust this as needed
 const measurements = generateMeasurementData(devices, 8); // Adjust this as needed
 const assignments = generateOrganisationData(devices, 3); // Adjust this as needed
 
