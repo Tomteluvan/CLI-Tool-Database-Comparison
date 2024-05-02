@@ -227,8 +227,6 @@ async function performQueryTimescale() {
         console.log("Benchmarked 100 queries successfully!");
 
         console.log(result);
-
-        await findAndExtractDataTimescale();
     } catch (error) {
         console.error('Error occurred:', error);
     }
@@ -325,5 +323,6 @@ module.exports = {
     createAndPopulateDevicesTimescale,
     createAndPopulateMeasurementsTimescale,
     createAndPopulateOrganisationsTimescale,
-    performQueryTimescale
+    performQueryTimescale,
+    findAndExtractDataTimescale
 };
