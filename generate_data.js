@@ -1,4 +1,5 @@
 const {faker} = require("@faker-js/faker")
+const { saveData, createAndPopulateMeasurementsClickHouse } = require('./clickhouse/clickhouse_generate_data');
 
 faker.seed(12345);
 
@@ -22,6 +23,11 @@ function generateDeviceData(numOfDevices) {
 }
 
 function generateMeasurementData(devicesData, periodTime) {
+
+    createAndPopulateMeasurementsClickHouse();
+
+    const BATCH_SIZE = 50000;
+
     const measurementsBatch = [];
 
     console.time('faker time');
@@ -47,13 +53,22 @@ function generateMeasurementData(devicesData, periodTime) {
                     type: typeId,
                     timestamp: genHour
                 });
+
+                if (measurementsBatch.length >= BATCH_SIZE) {
+                    saveData(measurementsBatch);
+                    measurementsBatch.length = 0;
+                }
             }
 
             genHour = new Date(genHour.getTime() + 60 * 60 * 1000);
         }
     }
-    console.timeEnd('faker time')
-    return measurementsBatch;
+
+    if (measurementsBatch.length > 0) {
+        saveData(measurementsBatch); // Save remaining data
+    }
+
+    console.timeEnd('faker time');
 }
 
 function generateOrganisationData(devices) {
