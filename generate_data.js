@@ -32,7 +32,7 @@ async function generateMeasurementData(devicesData, periodTime) {
 
     const measurementsBatch = [];
 
-    console.time('faker time');
+    // console.time('faker time');
     let endDate = null;
 
     // Initialize the start date and end date
@@ -70,7 +70,7 @@ async function generateMeasurementData(devicesData, periodTime) {
         saveData(measurementsBatch); // Save remaining data
     }
 
-    console.timeEnd('faker time');
+    // console.timeEnd('faker time');
 }
 
 function generateOrganisationData(devices) {
