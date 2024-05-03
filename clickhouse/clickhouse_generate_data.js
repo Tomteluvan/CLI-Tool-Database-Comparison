@@ -70,7 +70,7 @@ async function createAndPopulateDevicesClickHouse(devices) {
     }
 }
 
-async function createAndPopulateMeasurementsClickHouse(measurements) {
+async function createAndPopulateMeasurementsClickHouse() {
     try {
         
         // Drop table if exists
@@ -88,39 +88,37 @@ async function createAndPopulateMeasurementsClickHouse(measurements) {
         `).toPromise();
 
         console.log('Measurements table created');
-
-        console.time('insertTime');
-
-        // Define batch size
-        const batchSize = 500; // Adjust based on your system's capacity
-
-        // Insert measurements in batches
-        for (let i = 0; i < measurements.length; i += batchSize) {
-
-            const batch = measurements.slice(i, i + batchSize);
-
-            // Build values string for insertion
-            const valuesStr = batch.map(({ device_id, value, type, timestamp }) => {
-                const adjustedTimestamp = timestamp.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
-                return `('${device_id}', '${value}', '${type}', '${adjustedTimestamp}')`;
-            }).join(',');
-        
-            // Perform batch insert
-            await clickhouse.query(`
-                INSERT INTO measurements (device_id, value, type, timestamp)
-                VALUES ${valuesStr}
-            `).toPromise();
-        }
-
-        console.timeEnd('insertTime');
-
-        console.log(`${measurements.length} measurements inserted into measurements table.`);
-
-        console.log('Measurements have been inserted successfully.');
-
     } catch (error) {
         console.error('An error occurred:', error);
     }
+}
+
+async function saveData(measurements) {
+
+    // console.time('insertTime');
+
+    const batchSize = 500;
+
+    for (let i = 0; i < measurements.length; i += batchSize) {
+
+        const batch = measurements.slice(i, i + batchSize);
+
+        // Build values string for insertion
+        const valuesStr = batch.map(({ device_id, value, type, timestamp }) => {
+            const adjustedTimestamp = timestamp.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
+            return `('${device_id}', '${value}', '${type}', '${adjustedTimestamp}')`;
+        }).join(',');
+    
+        // Perform batch insert
+        await clickhouse.query(`
+            INSERT INTO measurements (device_id, value, type, timestamp)
+            VALUES ${valuesStr}
+        `).toPromise();
+    }
+
+    // console.timeEnd('insertTime');
+
+    console.log(`${measurements.length} measurements inserted into measurements table.`);
 }
 
 async function createAndPopulateOrganisationsClickHouse(assignments) {
@@ -170,57 +168,31 @@ async function createAndPopulateOrganisationsClickHouse(assignments) {
     }
 }
 
-async function performQueryForClickHouse(option) {
+async function performQueryForClickHouse() {
     const numbers = [];
     let sum = 0;
     let k = 100;
 
-    switch(option) {
-        case '1':
-            try {
-                const dockerCommand = `docker exec clickhouse-server clickhouse-client --time -q "SELECT toUnixTimestamp(dateTrunc('month', m.timestamp)) AS ts, sum(m.value) AS value, d.sub_type AS type FROM measurements AS m INNER JOIN devices AS d ON d.id = m.device_id WHERE (d.id = 'c28ace1e-cf28-4d2f-a7d3-9bc8631cd379') AND (m.type = 4) AND (m.timestamp >= '2024-01-01 12:00:00') AND (m.timestamp < '2024-02-01 12:00:00') GROUP BY ts, d.sub_type ORDER BY ts ASC, d.sub_type ASC;"`;
-                
-                for (let i = 0; i < k; i++) {
-                    console.log(`Running iteration ${i + 1}`);
+    try {
+        const dockerCommand = `docker exec clickhouse-server clickhouse-client --time -q "SELECT toUnixTimestamp(date_trunc('month', toDateTime(m.timestamp, 'Europe/Berlin'))) AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '2' AND m.type = 5 AND m.timestamp >= toDateTime(1704106800) AND m.timestamp < toDateTime(1706698800) GROUP BY ts, d.sub_type ORDER BY ts ASC, d.sub_type ASC;"`;
 
-                    const { stdout, stderr } = await execAsync(dockerCommand);
+        for (let i = 0; i < k; i++) {
+            console.log(`Running iteration ${i + 1}`);
 
-                    console.log(`Execution Time: ${stderr * 1000} ms`);
+            const { stdout, stderr } = await execAsync(dockerCommand);
 
-                    numbers.push(stderr * 1000);
-                    sum += stderr * 1000;
-                }
+            console.log(`Execution Time: ${stderr * 1000} ms`);
 
-                const mean = sum / k;
+            numbers.push(stderr * 1000);
+            sum += stderr * 1000;
+        }
 
-                calculateStatistics(mean, numbers);
+        const mean = sum / k;
 
-            } catch (error) {
-                console.error(`Error executing query: ${error.message}`);
-            }
-            break;
-        case '2':
-            try {
-                const dockerCommand = `docker exec clickhouse-server clickhouse-client --time -q "SELECT toUnixTimestamp(date_trunc('month', toDateTime(m.timestamp, 'Europe/Berlin'))) AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '2' AND m.type = 5 AND m.timestamp >= toDateTime(1704106800) AND m.timestamp < toDateTime(1706698800) GROUP BY ts, d.sub_type ORDER BY ts ASC, d.sub_type ASC;"`;
+        calculateStatistics(mean, numbers);
 
-                for (let i = 0; i < k; i++) {
-                    console.log(`Running iteration ${i + 1}`);
-
-                    const { stdout, stderr } = await execAsync(dockerCommand);
-
-                    console.log(`Execution Time: ${stderr * 1000} ms`);
-
-                    numbers.push(stderr * 1000);
-                    sum += stderr * 1000;
-                }
-
-                const mean = sum / k;
-
-                calculateStatistics(mean, numbers);
-
-            } catch (error) {
-                console.error('Error during the execution:', error);
-            }
+    } catch (error) {
+        console.error('Error during the execution:', error);
     }
 }
 
@@ -259,5 +231,6 @@ module.exports = {
     createAndPopulateDevicesClickHouse,
     createAndPopulateMeasurementsClickHouse,
     createAndPopulateOrganisationsClickHouse,
-    performQueryForClickHouse
+    performQueryForClickHouse,
+    saveData
 };

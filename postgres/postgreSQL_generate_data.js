@@ -212,30 +212,16 @@ function run_pgbench(command) {
     });
 }
 
-async function performQueryPostgres(option) {
-    switch (option) {
-        case '1':
-            try {
-                const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_one_device_postgres.sql --transactions=10 --log`;
-                const result = await run_pgbench(command);
-                console.log("Benchmarked 100 queries successfully!");
-                console.log(result);
-            } catch (error) {
-                console.error("Error occurred:", error);
-            }            
-            break;
-        case '2':
-            try {
-                const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_multipleDevices_in_postgres.sql --transactions=10 --log`;
-                const result = await run_pgbench(command);
-                console.log("Benchmarked 100 queries successfully!");
-                console.log(result);
-            } catch (error) {
-                console.error('Error occurred:', error);
-            }
-            break;
-        default:
-            break;
+async function performQueryPostgres() {
+    try {
+        const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_multipleDevices_in_postgres.sql --transactions=100 --log`;
+        const result = await run_pgbench(command);
+
+        console.log("Benchmarked 100 queries successfully!");
+
+        console.log(result);
+    } catch (error) {
+        console.error('Error occurred:', error);
     }
 }
 
@@ -292,13 +278,10 @@ async function extractExecutionTime(file) {
                 if (columns.length >= 3) {
                     numbers.push(parseInt(columns[2]) * 0.001);
                     sum += parseInt(columns[2] * 0.001);
-                    console.log("Number:", columns[2])
                 }
             });
 
-            const sumInMilliseconds = sum * 0.001;
-
-            const mean = sumInMilliseconds / 10;
+            const mean = sum / 100;
 
             console.log("Mean", mean + " ms");
 

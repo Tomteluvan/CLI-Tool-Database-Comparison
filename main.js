@@ -2,7 +2,7 @@ const readline = require('readline');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
 const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
 const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
-const { createAndPopulateDevicesClickHouse, createAndPopulateMeasurementsClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
+const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
 const { resolve } = require('path');
 
 const rl = readline.createInterface({
@@ -10,7 +10,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-let numDevices, numMeasurements, numOrganisations;
+let numDevices, numPeriodOfTime;
 let devicesData, measurementsData, organisationsData;
 
 function displayMainMenu() {
@@ -18,8 +18,7 @@ function displayMainMenu() {
     console.log('1. Generate Data');
     console.log('2. Update databases');
     console.log('3. Perform Queries');
-    console.log('4. Extract logs')
-    console.log('5. Exit');
+    console.log('4. Exit');
     rl.question('Select an option: ', handleMainMenuSelection);
 }
 
@@ -65,7 +64,6 @@ async function handleChoosenDatabase(option) {
         case '4':
             await initializeDatabaseClickHouse();
             await createAndPopulateDevicesClickHouse(devicesData);
-            await createAndPopulateMeasurementsClickHouse(measurementsData);
             await createAndPopulateOrganisationsClickHouse(organisationsData);
             displayDatabases();
             break;    
@@ -83,15 +81,12 @@ function handleMainMenuSelection(option) {
       rl.question('Enter the number of devices: ', (devices) => {
         numDevices = parseInt(devices);
         devicesData = generateDeviceData(numDevices)
-        rl.question('Enter the number of measurement types: ', (measurements) => {
-          numMeasurements = parseInt(measurements);
-          measurementsData = generateMeasurementData(devicesData, numMeasurements)
-          rl.question('Enter the number of organisations: ', (organisations) => {
-            numOrganisations = parseInt(organisations);
-            organisationsData = generateOrganisationData(devicesData, numOrganisations)
-            console.log("\nNow, update the database with the generated data.");
-            displayMainMenu();
-          });
+        rl.question('For a one-month period, type (1). For a one-year period, type (2): ', (periodTime) => {
+          numPeriodOfTime = parseInt(periodTime);
+          measurementsData = generateMeasurementData(devicesData, numPeriodOfTime)
+          organisationsData = generateOrganisationData(devicesData)
+          console.log("\nNow, update the database with the generated data.");
+          displayMainMenu();
         });
       });
       break;
@@ -102,9 +97,6 @@ function handleMainMenuSelection(option) {
         displayQuery();
         break;
     case '4':
-        
-        break;
-    case '5':
         rl.close();
         break;
     default:
@@ -114,52 +106,15 @@ function handleMainMenuSelection(option) {
   }
 }
 
-async function handleChoosenQueryForPostgres() {
-    console.log("1. Retrieve data for one specific device.");
-    console.log("2. Retrieve data for several devices within an organization.");
-
-    return new Promise((resolve) => {
-        rl.question('Select an option: ', async (option) => {
-            await performQueryPostgres(option);
-            resolve();
-        });
-    });
-}
-
-async function handleChoosenQueryForTimescale() {
-    console.log("1. Retrieve data for one specific device.");
-    console.log("2. Retrieve data for several devices within an organization.");
-
-    return new Promise((resolve) => {
-        rl.question('Select an option: ', async (option) => {
-            await performQueryTimescale(option);
-            resolve();
-        });
-    });
-}
-
-async function handleChoosenQueryForClickHouse() {
-    console.log("1. Retrieve data for one specific device.");
-    console.log("2. Retrieve data for several devices within an organization.");
-
-    return new Promise((resolve) => {
-        rl.question('Select an option: ', async (option) => {
-            await performQueryForClickHouse(option);
-            resolve();
-        });
-    });
-}
-
-
 async function handleChoosenQuery(option) {
     switch (option) {
         case '1':
-            await handleChoosenQueryForPostgres();
+            await performQueryPostgres();
             await findAndExtractDataPostgres();
             displayMainMenu();
             break;
         case '2':
-            await handleChoosenQueryForTimescale();
+            await performQueryTimescale();
             await findAndExtractDataTimescale();
             displayMainMenu();
             break;
@@ -167,8 +122,7 @@ async function handleChoosenQuery(option) {
             // InfluxDB
             break;
         case '4':
-            await initializeDatabaseClickHouse();
-            await handleChoosenQueryForClickHouse();
+            await performQueryForClickHouse();
             displayMainMenu();
             break;
         case '5':
