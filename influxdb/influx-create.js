@@ -1,4 +1,4 @@
-const { InfluxDB, Point } = require('@influxdata/influxdb-client');
+const { InfluxDB, Point, DEFAULT_WriteOptions } = require('@influxdata/influxdb-client');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('../generate_data');
 
 const url = 'http://localhost:8086';
@@ -6,7 +6,12 @@ const org = 'quandify';
 const token = 'M2comoATFn6FV5SkSwTlBeV4_g-Ecb9xb6v4LyzIKOy29k9Qze7rA-UPPvAerAqT0KSzrEwmO03hUq65BO76ow==';
 const bucket = 'measurements';
 
-const DELAY_BETWEEN_BATCHES_MS = 100;
+const flushBatchSize = 25000;
+
+const writeOptions = {
+    batchSize: 50000,
+    flushInterval:0
+}
 
 async function writeData(measurements, devices, assignments) {
     console.time('influx write');
@@ -14,11 +19,7 @@ async function writeData(measurements, devices, assignments) {
     const deviceMap = new Map(devices.map(device => [device.device_id, device]));
     const assignmentMap = new Map(assignments.map(assign => [assign.device_id, assign]));
 
-    const writeApi = new InfluxDB({ url, token, timeout: 3000000 }).getWriteApi(org, bucket, 'ms');
-
-    const BATCH_SIZE = 10000; // Choose a batch size that suits your environment
-    let batchPoints = [];
-    let counter = 0;
+    const writeApi = new InfluxDB({ url, token, timeout: 3000000 }).getWriteApi(org, bucket, 'ms', writeOptions);
 
 
     for (let i = 0; i < measurements.length; i++) {
@@ -36,19 +37,13 @@ async function writeData(measurements, devices, assignments) {
                 .floatField('value', measurement.value)
                 .timestamp(measurement.timestamp);
 
-            batchPoints.push(point);
-            // writeApi.writePoint(point)
+            // writePoint only writes the point so that it is prepared for insertion to the database
+            writeApi.writePoint(point)
 
-            // Write the batch when the batch size is reached or on the last iteration
-            if ( batchPoints.length >= BATCH_SIZE|| i === measurements.length - 1) {
-                writeApi.writePoints(batchPoints);
+            // We later "flush" all points that have been written after reaching a batch size so that it is transferred to the database
+            if ((i + 1) % flushBatchSize === 0) {
                 await writeApi.flush();
-                batchPoints = []; // Clear the array after writing
-                // await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES_MS)); // Delay before the next batch
             }
-
-            // // Write each point as it's created
-            // writeApi.writePoint(point);
         }
     }
 
