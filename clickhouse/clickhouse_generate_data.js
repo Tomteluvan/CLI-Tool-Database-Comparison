@@ -95,30 +95,33 @@ async function createAndPopulateMeasurementsClickHouse() {
 
 async function saveData(measurements) {
 
-    // console.time('insertTime');
+    try {
+        const batchSize = 500;
 
-    const batchSize = 500;
+        for (let i = 0; i < measurements.length; i += batchSize) {
 
-    for (let i = 0; i < measurements.length; i += batchSize) {
+            const batch = measurements.slice(i, i + batchSize);
 
-        const batch = measurements.slice(i, i + batchSize);
+            // Build values string for insertion
+            const valuesStr = batch.map(({ device_id, value, type, timestamp }) => {
+                const adjustedTimestamp = timestamp.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
+                return `('${device_id}', '${value}', '${type}', '${adjustedTimestamp}')`;
+            }).join(',');
+        
+            // Perform batch insert
+            await clickhouse.query(`
+                INSERT INTO measurements (device_id, value, type, timestamp)
+                VALUES ${valuesStr}
+            `).toPromise();
 
-        // Build values string for insertion
-        const valuesStr = batch.map(({ device_id, value, type, timestamp }) => {
-            const adjustedTimestamp = timestamp.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
-            return `('${device_id}', '${value}', '${type}', '${adjustedTimestamp}')`;
-        }).join(',');
-    
-        // Perform batch insert
-        await clickhouse.query(`
-            INSERT INTO measurements (device_id, value, type, timestamp)
-            VALUES ${valuesStr}
-        `).toPromise();
+        }
+        
+    } catch (error) {
+        console.error('An error occurred:', error);
     }
 
-    // console.timeEnd('insertTime');
+    // console.log(`${measurements.length} measurements inserted into measurements table.`);
 
-    console.log(`${measurements.length} measurements inserted into measurements table.`);
 }
 
 async function createAndPopulateOrganisationsClickHouse(assignments) {

@@ -28,11 +28,12 @@ async function generateMeasurementData(devicesData, periodTime) {
 
     await createAndPopulateMeasurementsClickHouse();
 
-    const BATCH_SIZE = 50000;
+    const BATCH_SIZE = 500;
 
     const measurementsBatch = [];
 
-    // console.time('faker time');
+    console.time('faker time');
+
     let endDate = null;
 
     // Initialize the start date and end date
@@ -41,6 +42,8 @@ async function generateMeasurementData(devicesData, periodTime) {
     } else {
         endDate = new Date('2025-01-01T12:00:00Z');
     }
+
+    let i = 0;
 
     for (const device of devicesData) {
 
@@ -57,8 +60,9 @@ async function generateMeasurementData(devicesData, periodTime) {
                 });
 
                 if (measurementsBatch.length >= BATCH_SIZE) {
-                    saveData(measurementsBatch);
+                    await saveData(measurementsBatch);
                     measurementsBatch.length = 0;
+                    console.log(i++);
                 }
             }
 
@@ -67,10 +71,12 @@ async function generateMeasurementData(devicesData, periodTime) {
     }
 
     if (measurementsBatch.length > 0) {
-        saveData(measurementsBatch); // Save remaining data
+        await saveData(measurementsBatch);
     }
 
-    // console.timeEnd('faker time');
+    console.timeEnd('faker time');
+
+    return measurementsBatch;
 }
 
 function generateOrganisationData(devices) {
@@ -85,6 +91,7 @@ function generateOrganisationData(devices) {
              device_id: device.device_id,
          });
      });
+
      console.timeEnd("assignment time");
  
      return assignments;

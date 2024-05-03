@@ -75,35 +75,35 @@ async function handleChoosenDatabase(option) {
     }
 }
 
-function handleMainMenuSelection(option) {
-  switch (option.trim()) {
-    case '1':
-      rl.question('Enter the number of devices: ', (devices) => {
-        numDevices = parseInt(devices);
-        devicesData = generateDeviceData(numDevices)
-        rl.question('For a one-month period, type (1). For a one-year period, type (2): ', (periodTime) => {
-          numPeriodOfTime = parseInt(periodTime);
-          measurementsData = generateMeasurementData(devicesData, numPeriodOfTime)
-          organisationsData = generateOrganisationData(devicesData)
-          console.log("\nNow, update the database with the generated data.");
-          displayMainMenu();
+async function handleMainMenuSelection(option) {
+    switch (option.trim()) {
+      case '1':
+        rl.question('Enter the number of devices: ', async (devices) => {
+          numDevices = parseInt(devices);
+          devicesData = generateDeviceData(numDevices);
+          rl.question('For a one-month period, type (1). For a one-year period, type (2): ', async (periodTime) => {
+            numPeriodOfTime = parseInt(periodTime);
+            measurementsData = await generateMeasurementData(devicesData, numPeriodOfTime);
+            organisationsData = generateOrganisationData(devicesData);
+            console.log("\nNow, update the database with the generated data.");
+            displayMainMenu();
+          });
         });
-      });
-      break;
-    case '2':
+        break;
+      case '2':
         displayDatabases();
         break;
-    case '3':
+      case '3':
         displayQuery();
         break;
-    case '4':
+      case '4':
         rl.close();
         break;
-    default:
+      default:
         console.log('Invalid option. Please select again.');
         displayMainMenu();
         break;
-  }
+    }
 }
 
 async function handleChoosenQuery(option) {
