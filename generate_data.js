@@ -1,5 +1,6 @@
 const {faker} = require("@faker-js/faker")
 const { saveData, createAndPopulateMeasurementsClickHouse, initializeDatabaseClickHouse } = require('./clickhouse/clickhouse_generate_data');
+const { saveDataForPostgreSQL, createAndPopulateMeasurementsPostgres, initializeDatabasePostgres } = require('./postgres/postgreSQL_generate_data');
 
 faker.seed(12345);
 
@@ -24,9 +25,13 @@ function generateDeviceData(numOfDevices) {
 
 async function generateMeasurementData(devicesData, periodTime) {
 
-    await initializeDatabaseClickHouse();
+    // await initializeDatabaseClickHouse();
 
-    await createAndPopulateMeasurementsClickHouse();
+    await initializeDatabasePostgres();
+
+    // await createAndPopulateMeasurementsClickHouse();
+
+    await createAndPopulateMeasurementsPostgres();
 
     const BATCH_SIZE = 500;
 
@@ -60,7 +65,8 @@ async function generateMeasurementData(devicesData, periodTime) {
                 });
 
                 if (measurementsBatch.length >= BATCH_SIZE) {
-                    await saveData(measurementsBatch);
+                    // await saveData(measurementsBatch);
+                    await saveDataForPostgreSQL(measurementsBatch);
                     measurementsBatch.length = 0;
                     console.log(i++);
                 }
@@ -71,7 +77,8 @@ async function generateMeasurementData(devicesData, periodTime) {
     }
 
     if (measurementsBatch.length > 0) {
-        await saveData(measurementsBatch);
+        // await saveData(measurementsBatch);
+        await saveDataForPostgreSQL(measurementsBatch);
     }
 
     console.timeEnd('faker time');

@@ -2,6 +2,7 @@ const Sequelize = require('sequelize');
 const { exec } = require('child_process');
 const util = require('util');
 const fs = require('fs');
+const { tr } = require('@faker-js/faker');
 const readFileAsync = util.promisify(fs.readFile);
 const execProm = util.promisify(exec);
 
@@ -102,7 +103,7 @@ async function createAndPopulateDevicesPostgres(data) {
     }
 }
 
-async function createAndPopulateMeasurementsPostgres(data) {
+async function createAndPopulateMeasurementsPostgres() {
     try {
 
         // Drop table if exists
@@ -125,33 +126,6 @@ async function createAndPopulateMeasurementsPostgres(data) {
 
         // Create single-column index on timestamp
         await sequelize.query(`CREATE INDEX idx_measurements_timestamp ON measurements (timestamp);`);
-
-        console.time('insertTime');
-
-        // Define batch size
-        const batchSize = 1000; // Adjust based on your system's capacity
-        
-        for (let i = 0; i < data.length; i += batchSize) {
-            // Slice the devices array to get a batch
-            const batch = data.slice(i, i + batchSize);
-            
-            // Perform batch insert
-            try {
-                await measurements.bulkCreate(batch.map(({ device_id, value, type, timestamp }) => ({
-                    device_id: device_id,
-                    value: value,
-                    type: type,
-                    timestamp: timestamp
-                })));
-                console.log(`Batch from ${i} to ${i + batchSize} inserted successfully.`);
-            } catch (error) {
-                console.error('Error inserting batch: ', error);
-            }
-        }
-        
-        console.timeEnd('insertTime');
-
-        console.log('Measurements inserted successfully.');
     } catch (error) {
         console.error('Failed to insert measurements: ', error);
     }
@@ -314,11 +288,40 @@ async function extractExecutionTime(file) {
         });
 }
 
+async function saveDataForPostgreSQL(data) {
+
+    try {
+        // Define batch size
+        const batchSize = 1000;
+        
+        for (let i = 0; i < data.length; i += batchSize) {
+            // Slice the devices array to get a batch
+            const batch = data.slice(i, i + batchSize);
+            
+            // Perform batch insert
+            try {
+                await measurements.bulkCreate(batch.map(({ device_id, value, type, timestamp }) => ({
+                    device_id: device_id,
+                    value: value,
+                    type: type,
+                    timestamp: timestamp
+                })));
+                console.log(`Batch from ${i} to ${i + batchSize} inserted successfully.`);
+            } catch (error) {
+                console.error('Error inserting batch: ', error);
+            }
+        }
+    } catch (error) {
+        console.error('An error occurred:', error);
+    }
+}
+
 module.exports = {
     initializeDatabasePostgres,
     createAndPopulateDevicesPostgres,
     createAndPopulateMeasurementsPostgres,
     createAndPopulateOrganisationsPostgres,
     performQueryPostgres,
-    findAndExtractDataPostgres
+    findAndExtractDataPostgres,
+    saveDataForPostgreSQL
 };

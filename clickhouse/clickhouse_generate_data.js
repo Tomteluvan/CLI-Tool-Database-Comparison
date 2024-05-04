@@ -115,13 +115,10 @@ async function saveData(measurements) {
             `).toPromise();
 
         }
-        
+
     } catch (error) {
         console.error('An error occurred:', error);
     }
-
-    // console.log(`${measurements.length} measurements inserted into measurements table.`);
-
 }
 
 async function createAndPopulateOrganisationsClickHouse(assignments) {
