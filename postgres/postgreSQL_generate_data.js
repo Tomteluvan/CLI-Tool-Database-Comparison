@@ -307,7 +307,7 @@ async function saveDataForPostgreSQL(data) {
                     type: type,
                     timestamp: timestamp
                 })));
-                console.log(`Batch from ${i} to ${i + batchSize} inserted successfully.`);
+                // console.log(`Batch from ${i} to ${i + batchSize} inserted successfully.`);
             } catch (error) {
                 console.error('Error inserting batch: ', error);
             }
