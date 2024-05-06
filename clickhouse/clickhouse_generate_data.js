@@ -83,8 +83,9 @@ async function createAndPopulateMeasurementsClickHouse() {
             value Float64,
             type Int16,
             timestamp DateTime('UTC')
-        ) ENGINE = MergeTree() 
-        ORDER BY timestamp;
+        ) ENGINE = MergeTree()
+        PARTITION BY toYYYYMMDD(timestamp)
+        ORDER BY (timestamp, device_id);
         `).toPromise();
 
         console.log('Measurements table created');

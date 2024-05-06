@@ -2,7 +2,6 @@ const Sequelize = require('sequelize');
 const { exec } = require('child_process');
 const util = require('util');
 const fs = require('fs');
-const { tr } = require('@faker-js/faker');
 const readFileAsync = util.promisify(fs.readFile);
 const execProm = util.promisify(exec);
 
@@ -189,7 +188,7 @@ function run_pgbench(command) {
 
 async function performQueryPostgres() {
     try {
-        const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_multipleDevices_in_postgres.sql --transactions=100 --log`;
+        const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_multipleDevices_in_postgres.sql --transactions=10 --log`;
         const result = await run_pgbench(command);
 
         console.log("Benchmarked 100 queries successfully!");
@@ -273,7 +272,7 @@ async function extractExecutionTime(file) {
             const standardDeviation = Math.sqrt(squaredDifferencesMean);
 
             console.log("Standard Deviation:", standardDeviation + " ms");
-''
+
             const cv = (standardDeviation / mean) * 100;
 
             console.log("Coefficient of Variation:", cv.toFixed(2) + "%");

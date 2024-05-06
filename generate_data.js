@@ -43,7 +43,7 @@ async function generateMeasurementData(devicesData, periodTime) {
 
     // Initialize the start date and end date
     if (periodTime === 1) {
-        endDate = new Date('2024-02-01T00:00:00Z');    
+        endDate = new Date('2024-02-01T00:00:00Z');   
     } else {
         endDate = new Date('2025-01-01T12:00:00Z');
     }
