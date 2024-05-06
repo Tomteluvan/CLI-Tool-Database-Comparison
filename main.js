@@ -3,6 +3,7 @@ const { generateDeviceData, generateMeasurementData, generateOrganisationData } 
 const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
 const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
 const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
+const { createAndPopulateInflux, performQueryInflux1Month} = require('./influxdb/influx-create')
 const { resolve } = require('path');
 
 const rl = readline.createInterface({
@@ -60,6 +61,8 @@ async function handleChoosenDatabase(option) {
             break;
         case '3':
             // InfluxDB
+            await createAndPopulateInflux(devicesData, measurementsData, organisationsData);
+            displayDatabases();
             break;
         case '4':
             await initializeDatabaseClickHouse();
@@ -75,15 +78,15 @@ async function handleChoosenDatabase(option) {
     }
 }
 
-function handleMainMenuSelection(option) {
+async function handleMainMenuSelection(option) {
   switch (option.trim()) {
     case '1':
       rl.question('Enter the number of devices: ', (devices) => {
         numDevices = parseInt(devices);
         devicesData = generateDeviceData(numDevices)
-        rl.question('For a one-month period, type (1). For a one-year period, type (2): ', (periodTime) => {
+        rl.question('For a one-month period, type (1). For a one-year period, type (2): ', async (periodTime) => {
           numPeriodOfTime = parseInt(periodTime);
-          measurementsData = generateMeasurementData(devicesData, numPeriodOfTime)
+          measurementsData = await generateMeasurementData(devicesData, numPeriodOfTime)
           organisationsData = generateOrganisationData(devicesData)
           console.log("\nNow, update the database with the generated data.");
           displayMainMenu();
@@ -120,6 +123,8 @@ async function handleChoosenQuery(option) {
             break;
         case '3':
             // InfluxDB
+            await performQueryInflux1Month()
+            displayMainMenu();
             break;
         case '4':
             await performQueryForClickHouse();
