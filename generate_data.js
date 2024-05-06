@@ -24,15 +24,11 @@ function generateDeviceData(numOfDevices) {
 
 async function generateMeasurementData(devicesData, periodTime) {
 
-    await initializeDatabaseClickHouse();
-
-    await createAndPopulateMeasurementsClickHouse();
-
     const BATCH_SIZE = 50000;
 
     const measurementsBatch = [];
 
-    // console.time('faker time');
+    console.time('faker time');
     let endDate = null;
 
     // Initialize the start date and end date
@@ -55,22 +51,14 @@ async function generateMeasurementData(devicesData, periodTime) {
                     type: typeId,
                     timestamp: genHour
                 });
-
-                if (measurementsBatch.length >= BATCH_SIZE) {
-                    saveData(measurementsBatch);
-                    measurementsBatch.length = 0;
-                }
             }
 
             genHour = new Date(genHour.getTime() + 60 * 60 * 1000);
         }
     }
-
-    if (measurementsBatch.length > 0) {
-        saveData(measurementsBatch); // Save remaining data
-    }
-
-    // console.timeEnd('faker time');
+    console.timeEnd('faker time');
+    
+    return measurementsBatch;
 }
 
 function generateOrganisationData(devices) {

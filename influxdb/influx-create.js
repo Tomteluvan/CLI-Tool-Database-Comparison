@@ -1,4 +1,4 @@
-const { InfluxDB, Point, DEFAULT_WriteOptions } = require('@influxdata/influxdb-client');
+const { InfluxDB, Point } = require('@influxdata/influxdb-client');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('../generate_data');
 
 const url = 'http://localhost:8086';
@@ -13,7 +13,13 @@ const writeOptions = {
     flushInterval:0
 }
 
-async function writeData(measurements, devices, assignments) {
+// async function writeData(measurements, devices, assignments) {
+async function writeData() {
+    // these function calls should be done through the CLI in the main program later.
+    const devices = generateDeviceData(1000); // Adjust this as needed
+    const measurements = await generateMeasurementData(devices, 1); // Adjust this as needed
+    const assignments = generateOrganisationData(devices); // Adjust this as needed
+
     console.time('influx write');
 
     const deviceMap = new Map(devices.map(device => [device.device_id, device]));
@@ -33,7 +39,7 @@ async function writeData(measurements, devices, assignments) {
                 .tag('device_type', device.type)
                 .tag('device_subtype', device.subType)
                 .tag('organisation_id', assignment.organisation_id.toString())
-                .tag('measurement_type', `type${measurement.type}`)
+                .tag('measurement_type', measurement.type)
                 .floatField('value', measurement.value)
                 .timestamp(measurement.timestamp);
 
@@ -54,8 +60,9 @@ async function writeData(measurements, devices, assignments) {
 }
 
 // Generate and write example data
-const devices = generateDeviceData(1000); // Adjust this as needed
-const measurements = generateMeasurementData(devices, 8); // Adjust this as needed
-const assignments = generateOrganisationData(devices, 3); // Adjust this as needed
+// const devices = generateDeviceData(1000); // Adjust this as needed
+// const measurements = generateMeasurementData(devices, 1); // Adjust this as needed
+// const assignments = generateOrganisationData(devices); // Adjust this as needed
 
-writeData(measurements, devices, assignments);
+// writeData(measurements, devices, assignments);
+writeData();
