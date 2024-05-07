@@ -188,7 +188,7 @@ function run_pgbench(command) {
 
 async function performQueryPostgres() {
     try {
-        const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_multipleDevices_in_postgres.sql --transactions=20 --log`;
+        const command = `docker exec postgres_container pgbench -U numoh -d postgres_for_test -f /queries/query_for_multipleDevices_in_postgres.sql --transactions=10 --log`;
         const result = await run_pgbench(command);
 
         console.log("Benchmarked 10 queries successfully!");

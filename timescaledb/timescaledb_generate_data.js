@@ -195,7 +195,7 @@ function run_pgbench(command) {
 
 async function performQueryTimescale() {
     try {
-        const command = `docker exec timescaledb_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_multipleDevices_in_timescale.sql --transactions=100 --log`;
+        const command = `docker exec timescaledb_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_multipleDevices_in_timescale.sql --transactions=10 --log`;
         const result = await run_pgbench(command);
 
         console.log("Benchmarked 10 queries successfully!");
@@ -280,7 +280,7 @@ async function extractExecutionTime(file) {
 
             console.log("Standard Deviation:", standardDeviation + " ms");
 ''
-            const cv = standardDeviation / mean * 100;
+            const cv = (standardDeviation / mean) * 100;
 
             console.log("Coefficient of Variation:", cv.toFixed(2) + "%");
 
