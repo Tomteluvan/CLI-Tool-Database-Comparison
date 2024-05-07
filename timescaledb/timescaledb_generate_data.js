@@ -7,7 +7,8 @@ const execProm = util.promisify(exec);
 
 const sequelize = new Sequelize('postgres://numoh:PASSWORD123@localhost:5432/timescaledb_for_test', {
     dialect: 'postgres',
-    protocol: 'postgres'
+    protocol: 'postgres',
+    logging: false
 });
 
 let devices, measurements, organisations;
