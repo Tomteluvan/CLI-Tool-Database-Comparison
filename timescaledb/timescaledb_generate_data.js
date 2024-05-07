@@ -195,7 +195,7 @@ function run_pgbench(command) {
 
 async function performQueryTimescale() {
     try {
-        const command = `docker exec timescale_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_multipleDevices_in_timescale.sql --transactions=100 --log`;
+        const command = `docker exec timescaledb_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_multipleDevices_in_timescale.sql --transactions=100 --log`;
         const result = await run_pgbench(command);
 
         console.log("Benchmarked 10 queries successfully!");
@@ -209,7 +209,7 @@ async function performQueryTimescale() {
 async function findAndExtractDataTimescale() {
     try {
         // Step 1: Find the file inside the Docker container
-        const findCommand = 'docker exec timescale_container sh -c "find / -type f -name \'pgbench_log.*\' 2>/dev/null"';
+        const findCommand = 'docker exec timescaledb_container sh -c "find / -type f -name \'pgbench_log.*\' 2>/dev/null"';
         const result = await execProm(findCommand).catch(err => {
             if (!err.stdout.trim()) {
                 throw err;  // If there's no output, rethrow the error
@@ -226,7 +226,7 @@ async function findAndExtractDataTimescale() {
         const file = fileList[0].trim();
         console.log('File found:', file);
 
-        const command = `docker cp timescale_container:${file} .`;
+        const command = `docker cp timescaledb_container:${file} .`;
 
         // Execute the command
         await execProm(command);
@@ -235,7 +235,7 @@ async function findAndExtractDataTimescale() {
         await extractExecutionTime(file.slice(1));
 
         // Delete the file after processing
-        await execProm(`docker exec timescale_container sh -c "rm '${file}'"`);
+        await execProm(`docker exec timescaledb_container sh -c "rm '${file}'"`);
         console.log('File deleted successfully:', file);
 
     } catch (err) {
