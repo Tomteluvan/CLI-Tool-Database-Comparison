@@ -102,7 +102,7 @@ async function createAndPopulateDevicesTimescale(data) {
     }
 }
 
-async function createAndPopulateMeasurementsTimescale(data) {
+async function createAndPopulateMeasurementsTimescale() {
     try {
 
         // Drop table if exists
@@ -128,33 +128,6 @@ async function createAndPopulateMeasurementsTimescale(data) {
 
         // Create hypertable
         await sequelize.query(`SELECT create_hypertable('measurements', by_range('timestamp'));`);
-
-        console.time('insertTime');
-
-        // Define batch size
-        const batchSize = 1000; // Adjust based on your system's capacity
-        
-        for (let i = 0; i < data.length; i += batchSize) {
-            // Slice the devices array to get a batch
-            const batch = data.slice(i, i + batchSize);
-            
-            // Perform batch insert
-            try {
-                await measurements.bulkCreate(batch.map(({ device_id, value, type, timestamp }) => ({
-                    device_id: device_id,
-                    value: value,
-                    type: type,
-                    timestamp: timestamp
-                })));
-                console.log(`Batch from ${i} to ${i + batchSize} inserted successfully.`);
-            } catch (error) {
-                console.error('Error inserting batch: ', error);
-            }
-        }
-        
-        console.timeEnd('insertTime');
-
-        console.log('Measurements inserted successfully.');
     } catch (error) {
         console.error('Failed to insert measurements: ', error);
     }
@@ -224,7 +197,7 @@ async function performQueryTimescale() {
         const command = `docker exec timescale_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_multipleDevices_in_timescale.sql --transactions=100 --log`;
         const result = await run_pgbench(command);
 
-        console.log("Benchmarked 100 queries successfully!");
+        console.log("Benchmarked 10 queries successfully!");
 
         console.log(result);
     } catch (error) {
@@ -288,7 +261,7 @@ async function extractExecutionTime(file) {
                 }
             });
 
-            const mean = sum / 100;
+            const mean = sum / 10;
 
             console.log("Mean", mean + " ms");
 
@@ -318,11 +291,39 @@ async function extractExecutionTime(file) {
         });
 }
 
+async function saveDataForTimescaleDB(data) {
+    try {
+        // Define batch size
+        const batchSize = 1000;
+        
+        for (let i = 0; i < data.length; i += batchSize) {
+            // Slice the devices array to get a batch
+            const batch = data.slice(i, i + batchSize);
+            
+            // Perform batch insert
+            try {
+                await measurements.bulkCreate(batch.map(({ device_id, value, type, timestamp }) => ({
+                    device_id: device_id,
+                    value: value,
+                    type: type,
+                    timestamp: timestamp
+                })));
+                // console.log(`Batch from ${i} to ${i + batchSize} inserted successfully.`);
+            } catch (error) {
+                console.error('Error inserting batch: ', error);
+            }
+        }
+    } catch (error) {
+        console.error('An error occurred:', error);
+    }
+}
+
 module.exports = {
     initializeDatabaseTimescale,
     createAndPopulateDevicesTimescale,
     createAndPopulateMeasurementsTimescale,
     createAndPopulateOrganisationsTimescale,
     performQueryTimescale,
-    findAndExtractDataTimescale
+    findAndExtractDataTimescale,
+    saveDataForTimescaleDB
 };

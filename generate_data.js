@@ -1,6 +1,7 @@
 const {faker} = require("@faker-js/faker")
 const { saveData, createAndPopulateMeasurementsClickHouse, initializeDatabaseClickHouse } = require('./clickhouse/clickhouse_generate_data');
 const { saveDataForPostgreSQL, createAndPopulateMeasurementsPostgres, initializeDatabasePostgres } = require('./postgres/postgreSQL_generate_data');
+const { saveDataForTimescaleDB, createAndPopulateMeasurementsTimescale, initializeDatabaseTimescale } = require('./timescaledb/timescaledb_generate_data');
 
 faker.seed(12345);
 
@@ -27,11 +28,15 @@ async function generateMeasurementData(devicesData, periodTime) {
 
     // await initializeDatabaseClickHouse();
 
-    await initializeDatabasePostgres();
+    // await initializeDatabasePostgres();
+
+    await initializeDatabaseTimescale();
 
     // await createAndPopulateMeasurementsClickHouse();
 
-    await createAndPopulateMeasurementsPostgres();
+    // await createAndPopulateMeasurementsPostgres();
+
+    await createAndPopulateMeasurementsTimescale();
 
     const BATCH_SIZE = 500;
 
@@ -66,7 +71,8 @@ async function generateMeasurementData(devicesData, periodTime) {
 
                 if (measurementsBatch.length >= BATCH_SIZE) {
                     // await saveData(measurementsBatch);
-                    await saveDataForPostgreSQL(measurementsBatch);
+                    // await saveDataForPostgreSQL(measurementsBatch);
+                    await saveDataForTimescaleDB(measurementsBatch);
                     measurementsBatch.length = 0;
                     console.log(i++);
                 }
@@ -78,7 +84,8 @@ async function generateMeasurementData(devicesData, periodTime) {
 
     if (measurementsBatch.length > 0) {
         // await saveData(measurementsBatch);
-        await saveDataForPostgreSQL(measurementsBatch);
+        // await saveDataForPostgreSQL(measurementsBatch);
+        await saveDataForTimescaleDB(measurementsBatch);
     }
 
     console.timeEnd('faker time');
