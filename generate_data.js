@@ -74,7 +74,11 @@ async function generateMeasurementData(devicesData, periodTime) {
                     // await saveDataForPostgreSQL(measurementsBatch);
                     await saveDataForTimescaleDB(measurementsBatch);
                     measurementsBatch.length = 0;
-                    console.log(i++);
+                    if (i === 10000) {
+                        console.log("10 000 inserted!!!");   
+                        i = 0;
+                    }
+                    i++;
                 }
             }
 
