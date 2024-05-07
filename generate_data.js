@@ -28,15 +28,15 @@ async function generateMeasurementData(devicesData, periodTime) {
 
     // await initializeDatabaseClickHouse();
 
-    await initializeDatabasePostgres();
+    // await initializeDatabasePostgres();
 
-    // await initializeDatabaseTimescale();
+    await initializeDatabaseTimescale();
 
     // await createAndPopulateMeasurementsClickHouse();
 
-    await createAndPopulateMeasurementsPostgres();
+    // await createAndPopulateMeasurementsPostgres();
 
-    // await createAndPopulateMeasurementsTimescale();
+    await createAndPopulateMeasurementsTimescale();
 
     const BATCH_SIZE = 500;
 
@@ -71,8 +71,8 @@ async function generateMeasurementData(devicesData, periodTime) {
 
                 if (measurementsBatch.length >= BATCH_SIZE) {
                     // await saveData(measurementsBatch);
-                    await saveDataForPostgreSQL(measurementsBatch);
-                    // await saveDataForTimescaleDB(measurementsBatch);
+                    // await saveDataForPostgreSQL(measurementsBatch);
+                    await saveDataForTimescaleDB(measurementsBatch);
                     measurementsBatch.length = 0;
                     if (i === 10000) {
                         console.log("10 000 inserted!!!");   
@@ -88,8 +88,8 @@ async function generateMeasurementData(devicesData, periodTime) {
 
     if (measurementsBatch.length > 0) {
         // await saveData(measurementsBatch);
-        await saveDataForPostgreSQL(measurementsBatch);
-        // await saveDataForTimescaleDB(measurementsBatch);
+        // await saveDataForPostgreSQL(measurementsBatch);
+        await saveDataForTimescaleDB(measurementsBatch);
     }
 
     console.timeEnd('faker time');
