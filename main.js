@@ -3,7 +3,7 @@ const { generateDeviceData, generateMeasurementData, generateOrganisationData } 
 const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
 const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
 const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
-const { createAndPopulateInflux, performQueryInflux1Month} = require('./influxdb/influx-create')
+const { createAndPopulateInflux, performQueryInflux1Month, performQueryInflux1Year } = require('./influxdb/influx-create')
 const { resolve } = require('path');
 
 const rl = readline.createInterface({
@@ -123,7 +123,8 @@ async function handleChoosenQuery(option) {
             break;
         case '3':
             // InfluxDB
-            await performQueryInflux1Month()
+            await performQueryInflux1Month();
+            await performQueryInflux1Year();
             displayMainMenu();
             break;
         case '4':
