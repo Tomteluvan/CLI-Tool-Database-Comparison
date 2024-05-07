@@ -68,7 +68,11 @@ async function generateMeasurementData(devicesData, periodTime) {
                     // await saveData(measurementsBatch);
                     await saveDataForPostgreSQL(measurementsBatch);
                     measurementsBatch.length = 0;
-                    console.log(i++);
+	    	    i++;
+		    if (i === 10000) {
+    			console.log("10 000 inserted!!!");
+			i = 0;
+		    }
                 }
             }
 
