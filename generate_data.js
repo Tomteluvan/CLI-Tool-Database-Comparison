@@ -74,12 +74,8 @@ async function generateMeasurementData(devicesData, periodTime) {
                     // await saveDataForPostgreSQL(measurementsBatch);
                     await saveDataForTimescaleDB(measurementsBatch);
                     measurementsBatch.length = 0;
-                    if (i === 10000) {
-                        console.log("10 000 inserted!!!");   
-                        i = 0;
-                    }
-                    i++;
                 }
+                console.log(i++);
             }
 
             genHour = new Date(genHour.getTime() + 60 * 60 * 1000);
