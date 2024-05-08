@@ -84,7 +84,6 @@ async function createAndPopulateMeasurementsClickHouse() {
             type Int16,
             timestamp DateTime('UTC')
         ) ENGINE = MergeTree()
-        PARTITION BY toYYYYMMDD(timestamp)
         ORDER BY (timestamp, device_id);
         `).toPromise();
 
