@@ -172,11 +172,39 @@ async function createAndPopulateOrganisationsClickHouse(assignments) {
 async function performQueryForClickHouse() {
     const numbers = [];
     let sum = 0;
-    let k = 100;
+    let k = 10;
 
     try {
-        const dockerCommand = `docker exec clickhouse-server clickhouse-client --time -q "SELECT toUnixTimestamp(date_trunc('month', toDateTime(m.timestamp, 'Europe/Berlin'))) AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '2' AND m.type = 5 AND m.timestamp >= toDateTime(1704106800) AND m.timestamp < toDateTime(1706698800) GROUP BY ts, d.sub_type ORDER BY ts ASC, d.sub_type ASC;"`;
+        const dockerCommand = `docker exec clickhouse-server clickhouse-client --time -q "SELECT toUnixTimestamp(date_trunc('month', toDateTime(m.timestamp, 'Europe/Berlin'))) AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= toDateTime(1704106800) AND m.timestamp < toDateTime(1706698800) GROUP BY ts, d.sub_type ORDER BY ts ASC, d.sub_type ASC;"`;
 
+        for (let i = 0; i < k; i++) {
+            console.log(`Running iteration ${i + 1}`);
+
+            const { stdout, stderr } = await execAsync(dockerCommand);
+
+            console.log(`Execution Time: ${stderr * 1000} ms`);
+
+            numbers.push(stderr * 1000);
+            sum += stderr * 1000;
+        }
+
+        const mean = sum / k;
+
+        calculateStatistics(mean, numbers);
+
+    } catch (error) {
+        console.error('Error during the execution:', error);
+    }
+}
+
+async function performQueryForClickHouseForYear() {
+    const numbers = [];
+    let sum = 0;
+    let k = 10;
+
+    try {
+        const dockerCommand = `docker exec clickhouse-server clickhouse-client --time -q "SELECT toUnixTimestamp(date_trunc('year', toDateTime(m.timestamp, 'Europe/Berlin'))) AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= toDateTime(1704106800) AND m.timestamp < toDateTime(1735642800) GROUP BY ts, d.sub_type ORDER BY ts ASC, d.sub_type ASC;"`;
+        
         for (let i = 0; i < k; i++) {
             console.log(`Running iteration ${i + 1}`);
 
@@ -233,5 +261,6 @@ module.exports = {
     createAndPopulateMeasurementsClickHouse,
     createAndPopulateOrganisationsClickHouse,
     performQueryForClickHouse,
+    performQueryForClickHouseForYear,
     saveData
 };

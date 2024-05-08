@@ -2,7 +2,7 @@ const readline = require('readline');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
 const { createAndPopulateDevicesTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
 const { createAndPopulateDevicesPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
-const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
+const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse, performQueryForClickHouseForYear } = require('./clickhouse/clickhouse_generate_data');
 const { resolve } = require('path');
 
 const rl = readline.createInterface({
@@ -121,6 +121,7 @@ async function handleChoosenQuery(option) {
             break;
         case '4':
             await performQueryForClickHouse();
+            await performQueryForClickHouseForYear();
             displayMainMenu();
             break;
         case '5':
