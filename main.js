@@ -3,7 +3,7 @@ const { generateDeviceData, generateMeasurementData, generateOrganisationData } 
 const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
 const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
 const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
-const { createAndPopulateInflux, performQueryInflux1Month, performQueryInflux1Year } = require('./influxdb/influx-create')
+const { createAndPopulateInflux, performQueryInflux1Month, performQueryInflux1Year, generateAndWriteMeasurements } = require('./influxdb/influx-create')
 const { resolve } = require('path');
 
 const rl = readline.createInterface({
@@ -61,7 +61,8 @@ async function handleChoosenDatabase(option) {
             break;
         case '3':
             // InfluxDB
-            await createAndPopulateInflux(devicesData, measurementsData, organisationsData);
+            // await createAndPopulateInflux(devicesData, measurementsData, organisationsData);
+            await generateAndWriteMeasurements(devicesData, organisationsData)
             displayDatabases();
             break;
         case '4':
@@ -84,13 +85,13 @@ async function handleMainMenuSelection(option) {
       rl.question('Enter the number of devices: ', (devices) => {
         numDevices = parseInt(devices);
         devicesData = generateDeviceData(numDevices)
-        rl.question('For a one-month period, type (1). For a one-year period, type (2): ', async (periodTime) => {
-          numPeriodOfTime = parseInt(periodTime);
-          measurementsData = await generateMeasurementData(devicesData, numPeriodOfTime)
-          organisationsData = generateOrganisationData(devicesData)
-          console.log("\nNow, update the database with the generated data.");
-          displayMainMenu();
-        });
+        organisationsData = generateOrganisationData(devicesData)
+        // rl.question('For a one-month period, type (1). For a one-year period, type (2): ', async (periodTime) => {
+        //     numPeriodOfTime = parseInt(periodTime);
+        //     measurementsData = await generateMeasurementData(devicesData, numPeriodOfTime)
+        // });
+        console.log("\nNow, update the database with the generated data.");
+        displayMainMenu();
       });
       break;
     case '2':

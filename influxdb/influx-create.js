@@ -1,4 +1,5 @@
 const { oneMonthInflux } = require('../queries/queries_for_influx/query_for_multipleDevices_in_influx');
+const {faker} = require("@faker-js/faker")
 const { InfluxDB, Point } = require('@influxdata/influxdb-client');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('../generate_data');
 const { exec } = require('child_process');
@@ -61,6 +62,56 @@ async function writeData() {
     console.log('Data points written successfully.');
     console.timeEnd('influx write');
 }
+
+async function generateAndWriteMeasurements(devicesData, organisationsData) {
+    const endDate = new Date('2025-01-01T12:00:00Z');
+    const deviceMap = new Map(devicesData.map(device => [device.device_id, device]));
+    const assignmentMap = new Map(organisationsData.map(assign => [assign.device_id, assign]));
+
+    const writeApi = new InfluxDB({ url, token, timeout: 3000000 }).getWriteApi(org, bucket, 'ms', writeOptions);
+
+    console.time('Influx insertion');
+    for (const device of devicesData) {
+        let genHour = new Date('2024-01-01T12:00:00Z');
+
+        while (genHour <= endDate) {
+            for (let typeId = 1; typeId <= 8; typeId++) {
+                const value = faker.number.float({ min: 0.0, max: 100.0 });
+                const measurement = {
+                    device_id: device.device_id,
+                    value,
+                    type: typeId,
+                    timestamp: genHour
+                };
+
+                const assignment = assignmentMap.get(measurement.device_id);
+
+                if (device && assignment) {
+                    const point = new Point('measurement')
+                        .tag('device_id', device.device_id)
+                        .tag('device_type', device.type)
+                        .tag('device_subtype', device.subType)
+                        .tag('organisation_id', assignment.organisation_id.toString())
+                        .tag('measurement_type', measurement.type)
+                        .floatField('value', measurement.value)
+                        .timestamp(measurement.timestamp);
+
+                    writeApi.writePoint(point);
+                }
+            }
+
+            genHour = new Date(genHour.getTime() + 60 * 60 * 1000);
+        }
+
+        // Flush after processing each device, or based on another logic that suits the batch size
+        await writeApi.flush();
+    }
+
+    // Ensure all writes are completed before closing the API
+    await writeApi.close();
+    console.timeEnd('Influx insertion');
+}
+
 
 async function createAndPopulateInflux (devicesData, measurementsData, organisationsData) {
     try {
@@ -218,5 +269,6 @@ function calculateStatistics(mean, numbers) {
 module.exports = {
     createAndPopulateInflux,
     performQueryInflux1Month,
-    performQueryInflux1Year
+    performQueryInflux1Year,
+    generateAndWriteMeasurements
 };
