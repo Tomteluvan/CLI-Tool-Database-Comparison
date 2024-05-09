@@ -7,7 +7,8 @@ const execAsync = promisify(exec);
 
 const url = 'http://localhost:8086';
 const org = 'quandify';
-const token = 'M2comoATFn6FV5SkSwTlBeV4_g-Ecb9xb6v4LyzIKOy29k9Qze7rA-UPPvAerAqT0KSzrEwmO03hUq65BO76ow==';
+const token = 'pWHCI9tBjbt0yrkczKMnlKklfIhHClkt6rYK3VbyrcLiPUw9b1J_mOnq-DbCTCXDht4cfDYcLOjHvhMiP8LiPA==';
+// M2comoATFn6FV5SkSwTlBeV4_g-Ecb9xb6v4LyzIKOy29k9Qze7rA-UPPvAerAqT0KSzrEwmO03hUq65BO76ow==
 const bucket = 'measurements';
 
 const flushBatchSize = 25000;
