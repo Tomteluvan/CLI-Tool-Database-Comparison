@@ -1,17 +1,16 @@
 const readline = require('readline');
-const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
+const { generateDeviceData, generateOrganisationData } = require('./generate_data');
 const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
 const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
 const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
 const { performQueryInflux1Month, performQueryInflux1Year, generateAndWriteMeasurements } = require('./influxdb/influx-create')
-const { resolve } = require('path');
 
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
-let numDevices, numPeriodOfTime;
+let numDevices;
 let devicesData, measurementsData, organisationsData;
 
 function displayMainMenu() {
@@ -46,6 +45,7 @@ function displayQuery() {
 async function handleChoosenDatabase(option) {
     switch (option.trim()) {
         case '1':
+            // PostgreSQL
             await initializeDatabasePostgres();
             await createAndPopulateDevicesPostgres(devicesData);
             await createAndPopulateMeasurementsPostgres(measurementsData);
@@ -53,6 +53,7 @@ async function handleChoosenDatabase(option) {
             displayDatabases();
             break;
         case '2':
+            // ClickHouse
             await initializeDatabaseTimescale();
             await createAndPopulateDevicesTimescale(devicesData);
             await createAndPopulateMeasurementsTimescale(measurementsData);
@@ -60,10 +61,12 @@ async function handleChoosenDatabase(option) {
             displayDatabases();
             break;
         case '3':
+            // InfluxDB
             await generateAndWriteMeasurements(devicesData, organisationsData)
             displayDatabases();
             break;
         case '4':
+            // ClickHouse
             await initializeDatabaseClickHouse();
             await createAndPopulateDevicesClickHouse(devicesData);
             await createAndPopulateOrganisationsClickHouse(organisationsData);
@@ -84,10 +87,6 @@ async function handleMainMenuSelection(option) {
         numDevices = parseInt(devices);
         devicesData = generateDeviceData(numDevices)
         organisationsData = generateOrganisationData(devicesData)
-        // rl.question('For a one-month period, type (1). For a one-year period, type (2): ', async (periodTime) => {
-        //     numPeriodOfTime = parseInt(periodTime);
-        //     measurementsData = await generateMeasurementData(devicesData, numPeriodOfTime)
-        // });
         console.log("\nNow, update the database with the generated data.");
         displayMainMenu();
       });
@@ -111,11 +110,13 @@ async function handleMainMenuSelection(option) {
 async function handleChoosenQuery(option) {
     switch (option) {
         case '1':
+            // PostgreSQL
             await performQueryPostgres();
             await findAndExtractDataPostgres();
             displayMainMenu();
             break;
         case '2':
+            // TimescaleDB
             await performQueryTimescale();
             await findAndExtractDataTimescale();
             displayMainMenu();
@@ -127,6 +128,7 @@ async function handleChoosenQuery(option) {
             displayMainMenu();
             break;
         case '4':
+            // ClickHouse
             await performQueryForClickHouse();
             displayMainMenu();
             break;
