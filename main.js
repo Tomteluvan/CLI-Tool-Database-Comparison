@@ -3,7 +3,7 @@ const { generateDeviceData, generateMeasurementData, generateOrganisationData } 
 const { createAndPopulateDevicesTimescale, createAndPopulateMeasurementsTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
 const { createAndPopulateDevicesPostgres, createAndPopulateMeasurementsPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
 const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse } = require('./clickhouse/clickhouse_generate_data');
-const { createAndPopulateInflux, performQueryInflux1Month, performQueryInflux1Year, generateAndWriteMeasurements } = require('./influxdb/influx-create')
+const { performQueryInflux1Month, performQueryInflux1Year, generateAndWriteMeasurements } = require('./influxdb/influx-create')
 const { resolve } = require('path');
 
 const rl = readline.createInterface({
@@ -60,8 +60,6 @@ async function handleChoosenDatabase(option) {
             displayDatabases();
             break;
         case '3':
-            // InfluxDB
-            // await createAndPopulateInflux(devicesData, measurementsData, organisationsData);
             await generateAndWriteMeasurements(devicesData, organisationsData)
             displayDatabases();
             break;
