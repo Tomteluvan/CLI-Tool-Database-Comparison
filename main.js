@@ -50,12 +50,13 @@ async function handleChoosenDatabase(option) {
     switch (option.trim()) {
         case '1':
             // PostgreSQL
-            await initializeDatabasePostgres();
-            await createAndPopulateMeasurementsPostgres();
-
+        
             // Wait for the user to enter the number of devices
             const devices = await askQuestion('Enter the number of devices: ');
         
+            await initializeDatabasePostgres();
+            await createAndPopulateMeasurementsPostgres();
+            
             numDevices = parseInt(devices);
             devicesData = generateDeviceData(numDevices);
             measurementsData = await generateMeasurementData(devicesData, 1);
