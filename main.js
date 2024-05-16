@@ -1,24 +1,23 @@
 const readline = require('readline');
 const { generateDeviceData, generateMeasurementData, generateOrganisationData } = require('./generate_data');
-const { createAndPopulateDevicesTimescale, createAndPopulateOrganisationsTimescale, initializeDatabaseTimescale, performQueryTimescale, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
-const { createAndPopulateDevicesPostgres, createAndPopulateOrganisationsPostgres, initializeDatabasePostgres, performQueryPostgres, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
-const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouse, performQueryForClickHouseForYear } = require('./clickhouse/clickhouse_generate_data');
-const { resolve } = require('path');
+const { createAndPopulateDevicesTimescale, createAndPopulateOrganisationsTimescale, createAndPopulateMeasurementsTimescale, initializeDatabaseTimescale, performQueryTimescaleForMonth, performQueryTimescaleForYear, findAndExtractDataTimescale } = require('./timescaledb/timescaledb_generate_data');
+const { createAndPopulateDevicesPostgres, createAndPopulateOrganisationsPostgres, createAndPopulateMeasurementsPostgres, initializeDatabasePostgres, performQueryPostgresForMonth, performQueryPostgresForYear, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
+const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, createAndPopulateMeasurementsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouseForMonth, performQueryForClickHouseForYear } = require('./clickhouse/clickhouse_generate_data');
+const { performQueryInflux1Month, performQueryInflux1Year, generateAndWriteMeasurements } = require('./influxdb/influx-create')
 
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
-let numDevices, numPeriodOfTime;
-let devicesData, measurementsData, organisationsData;
+let numDevices;
+let devicesData, organisationsData;
 
 function displayMainMenu() {
     console.log('\nMain Menu:');
-    console.log('1. Generate Data');
-    console.log('2. Update databases');
-    console.log('3. Perform Queries');
-    console.log('4. Exit');
+    console.log('1. Generate data and update database');
+    console.log('2. Perform Queries and get statistics');
+    console.log('3. Exit');
     rl.question('Select an option: ', handleMainMenuSelection);
 }
 
@@ -45,29 +44,65 @@ function displayQuery() {
 async function handleChoosenDatabase(option) {
     switch (option.trim()) {
         case '1':
+            // PostgreSQL
             await initializeDatabasePostgres();
+            await createAndPopulateMeasurementsPostgres();
+            rl.question('Enter the number of devices: ', async (devices) => {
+                numDevices = parseInt(devices);
+                devicesData = generateDeviceData(numDevices);
+                measurementsData = await generateMeasurementData(devicesData, 1);
+                organisationsData = generateOrganisationData(devicesData);
+            });
             await createAndPopulateDevicesPostgres(devicesData);
             await createAndPopulateOrganisationsPostgres(organisationsData);
-            displayDatabases();
+            displayMainMenu();
             break;
+
         case '2':
+            // TimescaleDB
             await initializeDatabaseTimescale();
+            await createAndPopulateMeasurementsTimescale();
+            rl.question('Enter the number of devices: ', async (devices) => {
+                numDevices = parseInt(devices);
+                devicesData = generateDeviceData(numDevices);
+                measurementsData = await generateMeasurementData(devicesData, 2);
+                organisationsData = generateOrganisationData(devicesData);
+            });
             await createAndPopulateDevicesTimescale(devicesData);
             await createAndPopulateOrganisationsTimescale(organisationsData);
-            displayDatabases();
+            displayMainMenu();
             break;
+
         case '3':
             // InfluxDB
+            rl.question('Enter the number of devices: ', (devices) => {
+                numDevices = parseInt(devices);
+                devicesData = generateDeviceData(numDevices)
+                organisationsData = generateOrganisationData(devicesData)
+            });
+            await generateAndWriteMeasurements(devicesData, organisationsData)
+            displayMainMenu();
             break;
+
         case '4':
+            // ClickHouse
             await initializeDatabaseClickHouse();
+            await createAndPopulateMeasurementsClickHouse();
+            rl.question('Enter the number of devices: ', async (devices) => {
+                numDevices = parseInt(devices);
+                devicesData = generateDeviceData(numDevices);
+                measurementsData = await generateMeasurementData(devicesData, 3);
+                organisationsData = generateOrganisationData(devicesData);
+            });
             await createAndPopulateDevicesClickHouse(devicesData);
             await createAndPopulateOrganisationsClickHouse(organisationsData);
-            displayDatabases();
+            displayMainMenu();
             break;    
+
         case '5':
             displayMainMenu();
             break;
+
         default:
             break;
     }
@@ -76,25 +111,12 @@ async function handleChoosenDatabase(option) {
 async function handleMainMenuSelection(option) {
     switch (option.trim()) {
       case '1':
-        rl.question('Enter the number of devices: ', async (devices) => {
-          numDevices = parseInt(devices);
-          devicesData = generateDeviceData(numDevices);
-          rl.question('For a one-month period, type (1). For a one-year period, type (2): ', async (periodTime) => {
-            numPeriodOfTime = parseInt(periodTime);
-            measurementsData = await generateMeasurementData(devicesData, numPeriodOfTime);
-            organisationsData = generateOrganisationData(devicesData);
-            console.log("\nNow, update the database with the generated data.");
-            displayMainMenu();
-          });
-        });
-        break;
-      case '2':
         displayDatabases();
         break;
-      case '3':
+      case '2':
         displayQuery();
         break;
-      case '4':
+      case '3':
         rl.close();
         break;
       default:
@@ -107,20 +129,27 @@ async function handleMainMenuSelection(option) {
 async function handleChoosenQuery(option) {
     switch (option) {
         case '1':
-            await performQueryPostgres();
+            await performQueryPostgresForMonth();
+            await findAndExtractDataPostgres();
+            await performQueryPostgresForYear();
             await findAndExtractDataPostgres();
             displayMainMenu();
             break;
         case '2':
-            await performQueryTimescale();
+            await performQueryTimescaleForMonth();
+            await findAndExtractDataTimescale();
+            await performQueryTimescaleForYear();
             await findAndExtractDataTimescale();
             displayMainMenu();
             break;
         case '3':
             // InfluxDB
+            await performQueryInflux1Month();
+            await performQueryInflux1Year();
+            displayMainMenu();
             break;
         case '4':
-            await performQueryForClickHouse();
+            await performQueryForClickHouseForMonth();
             await performQueryForClickHouseForYear();
             displayMainMenu();
             break;

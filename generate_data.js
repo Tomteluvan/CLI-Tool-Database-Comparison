@@ -1,7 +1,7 @@
-const {faker} = require("@faker-js/faker")
-const { saveData, createAndPopulateMeasurementsClickHouse, initializeDatabaseClickHouse } = require('./clickhouse/clickhouse_generate_data');
-const { saveDataForPostgreSQL, createAndPopulateMeasurementsPostgres, initializeDatabasePostgres } = require('./postgres/postgreSQL_generate_data');
-const { saveDataForTimescaleDB, createAndPopulateMeasurementsTimescale, initializeDatabaseTimescale } = require('./timescaledb/timescaledb_generate_data');
+const { faker } = require("@faker-js/faker")
+const { saveData } = require('./clickhouse/clickhouse_generate_data');
+const { saveDataForPostgreSQL } = require('./postgres/postgreSQL_generate_data');
+const { saveDataForTimescaleDB } = require('./timescaledb/timescaledb_generate_data');
 
 faker.seed(12345);
 
@@ -24,19 +24,7 @@ function generateDeviceData(numOfDevices) {
     return _devices;
 }
 
-async function generateMeasurementData(devicesData, periodTime) {
-
-    await initializeDatabaseClickHouse();
-
-    // await initializeDatabasePostgres();
-
-    // await initializeDatabaseTimescale();
-
-    await createAndPopulateMeasurementsClickHouse();
-
-    // await createAndPopulateMeasurementsPostgres();
-
-    // await createAndPopulateMeasurementsTimescale();
+async function generateMeasurementData(devicesData, databaseType) {
 
     const BATCH_SIZE = 500;
 
@@ -44,14 +32,8 @@ async function generateMeasurementData(devicesData, periodTime) {
 
     console.time('faker time');
 
-    let endDate = null;
-
     // Initialize the start date and end date
-    if (periodTime === 1) {
-        endDate = new Date('2024-02-01T00:00:00Z');   
-    } else {
-        endDate = new Date('2025-01-01T12:00:00Z');
-    }
+    let endDate = new Date('2025-01-01T12:00:00Z');
 
     let i = 0;
 
@@ -70,9 +52,13 @@ async function generateMeasurementData(devicesData, periodTime) {
                 });
 
                 if (measurementsBatch.length >= BATCH_SIZE) {
-                    await saveData(measurementsBatch);
-                    // await saveDataForPostgreSQL(measurementsBatch);
-                    // await saveDataForTimescaleDB(measurementsBatch);
+                    if (databaseType === 1) {
+                        await saveDataForPostgreSQL(measurementsBatch); // PostgreSQL
+                    } else if (databaseType === 2) {
+                        await saveDataForTimescaleDB(measurementsBatch); // TimescaleDB
+                    } else if (databaseType === 3) {
+                        await saveData(measurementsBatch); // ClickHouse 
+                    }
                     measurementsBatch.length = 0;
                     if (i === 2000) {
                         console.log("2000 insertion!!!");
@@ -87,9 +73,13 @@ async function generateMeasurementData(devicesData, periodTime) {
     }
 
     if (measurementsBatch.length > 0) {
-        await saveData(measurementsBatch);
-        // await saveDataForPostgreSQL(measurementsBatch);
-        // await saveDataForTimescaleDB(measurementsBatch);
+        if (databaseType === 1) {
+            await saveDataForPostgreSQL(measurementsBatch); // PostgreSQL
+        } else if (databaseType === 2) {
+            await saveDataForTimescaleDB(measurementsBatch); // TimescaleDB
+        } else if (databaseType === 3) {
+            await saveData(measurementsBatch); // ClickHouse 
+        }
     }
 
     console.timeEnd('faker time');

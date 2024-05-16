@@ -168,7 +168,7 @@ async function createAndPopulateOrganisationsClickHouse(assignments) {
     }
 }
 
-async function performQueryForClickHouse() {
+async function performQueryForClickHouseForMonth() {
     const numbers = [];
     let sum = 0;
     let k = 10;
@@ -259,7 +259,7 @@ module.exports = {
     createAndPopulateDevicesClickHouse,
     createAndPopulateMeasurementsClickHouse,
     createAndPopulateOrganisationsClickHouse,
-    performQueryForClickHouse,
+    performQueryForClickHouseForMonth,
     performQueryForClickHouseForYear,
     saveData
 };
