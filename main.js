@@ -41,20 +41,29 @@ function displayQuery() {
     rl.question('Select an option: ', handleChoosenQuery);
 } 
 
+// Function to wrap rl.question in a promise
+function askQuestion(query) {
+    return new Promise((resolve) => rl.question(query, resolve));
+}
+
 async function handleChoosenDatabase(option) {
     switch (option.trim()) {
         case '1':
             // PostgreSQL
             await initializeDatabasePostgres();
             await createAndPopulateMeasurementsPostgres();
-            rl.question('Enter the number of devices: ', async (devices) => {
-                numDevices = parseInt(devices);
-                devicesData = generateDeviceData(numDevices);
-                measurementsData = await generateMeasurementData(devicesData, 1);
-                organisationsData = generateOrganisationData(devicesData);
-            });
+
+            // Wait for the user to enter the number of devices
+            const devices = await askQuestion('Enter the number of devices: ');
+        
+            numDevices = parseInt(devices);
+            devicesData = generateDeviceData(numDevices);
+            measurementsData = await generateMeasurementData(devicesData, 1);
+            organisationsData = generateOrganisationData(devicesData);
+        
             await createAndPopulateDevicesPostgres(devicesData);
             await createAndPopulateOrganisationsPostgres(organisationsData);
+            
             displayMainMenu();
             break;
 
