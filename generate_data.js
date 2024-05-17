@@ -1,5 +1,7 @@
-const {faker} = require("@faker-js/faker")
-const { saveData, createAndPopulateMeasurementsClickHouse, initializeDatabaseClickHouse } = require('./clickhouse/clickhouse_generate_data');
+const { faker } = require("@faker-js/faker")
+const { saveData } = require('./clickhouse/clickhouse_generate_data');
+const { saveDataForPostgreSQL } = require('./postgres/postgreSQL_generate_data');
+const { saveDataForTimescaleDB } = require('./timescaledb/timescaledb_generate_data');
 
 faker.seed(12345);
 
@@ -22,25 +24,18 @@ function generateDeviceData(numOfDevices) {
     return _devices;
 }
 
-async function generateMeasurementData(devicesData, periodTime) {
+async function generateMeasurementData(devicesData, databaseType) {
 
-    await initializeDatabaseClickHouse();
-
-    await createAndPopulateMeasurementsClickHouse();
-
-    const BATCH_SIZE = 50000;
+    const BATCH_SIZE = 500;
 
     const measurementsBatch = [];
 
-    // console.time('faker time');
-    let endDate = null;
+    console.time('faker time');
 
     // Initialize the start date and end date
-    if (periodTime === 1) {
-        endDate = new Date('2024-02-01T00:00:00Z');    
-    } else {
-        endDate = new Date('2025-01-01T12:00:00Z');
-    }
+    let endDate = new Date('2025-01-01T12:00:00Z');
+
+    let i = 0;
 
     for (const device of devicesData) {
 
@@ -57,8 +52,19 @@ async function generateMeasurementData(devicesData, periodTime) {
                 });
 
                 if (measurementsBatch.length >= BATCH_SIZE) {
-                    saveData(measurementsBatch);
+                    if (databaseType === 1) {
+                        await saveDataForPostgreSQL(measurementsBatch); // PostgreSQL
+                    } else if (databaseType === 2) {
+                        await saveDataForTimescaleDB(measurementsBatch); // TimescaleDB
+                    } else if (databaseType === 3) {
+                        await saveData(measurementsBatch); // ClickHouse 
+                    }
                     measurementsBatch.length = 0;
+                    if (i === 2000) {
+                        console.log("2000 insertion!!!");
+                        i = 0;
+                    }
+                    i++;
                 }
             }
 
@@ -67,10 +73,18 @@ async function generateMeasurementData(devicesData, periodTime) {
     }
 
     if (measurementsBatch.length > 0) {
-        saveData(measurementsBatch); // Save remaining data
+        if (databaseType === 1) {
+            await saveDataForPostgreSQL(measurementsBatch); // PostgreSQL
+        } else if (databaseType === 2) {
+            await saveDataForTimescaleDB(measurementsBatch); // TimescaleDB
+        } else if (databaseType === 3) {
+            await saveData(measurementsBatch); // ClickHouse 
+        }
     }
 
-    // console.timeEnd('faker time');
+    console.timeEnd('faker time');
+
+    return measurementsBatch;
 }
 
 function generateOrganisationData(devices) {
@@ -85,6 +99,7 @@ function generateOrganisationData(devices) {
              device_id: device.device_id,
          });
      });
+
      console.timeEnd("assignment time");
  
      return assignments;

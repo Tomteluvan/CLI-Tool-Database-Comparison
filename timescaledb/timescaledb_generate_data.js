@@ -7,7 +7,8 @@ const execProm = util.promisify(exec);
 
 const sequelize = new Sequelize('postgres://numoh:PASSWORD123@localhost:5432/timescaledb_for_test', {
     dialect: 'postgres',
-    protocol: 'postgres'
+    protocol: 'postgres',
+    logging: false
 });
 
 let devices, measurements, organisations;
@@ -102,7 +103,7 @@ async function createAndPopulateDevicesTimescale(data) {
     }
 }
 
-async function createAndPopulateMeasurementsTimescale(data) {
+async function createAndPopulateMeasurementsTimescale() {
     try {
 
         // Drop table if exists
@@ -128,33 +129,6 @@ async function createAndPopulateMeasurementsTimescale(data) {
 
         // Create hypertable
         await sequelize.query(`SELECT create_hypertable('measurements', by_range('timestamp'));`);
-
-        console.time('insertTime');
-
-        // Define batch size
-        const batchSize = 1000; // Adjust based on your system's capacity
-        
-        for (let i = 0; i < data.length; i += batchSize) {
-            // Slice the devices array to get a batch
-            const batch = data.slice(i, i + batchSize);
-            
-            // Perform batch insert
-            try {
-                await measurements.bulkCreate(batch.map(({ device_id, value, type, timestamp }) => ({
-                    device_id: device_id,
-                    value: value,
-                    type: type,
-                    timestamp: timestamp
-                })));
-                console.log(`Batch from ${i} to ${i + batchSize} inserted successfully.`);
-            } catch (error) {
-                console.error('Error inserting batch: ', error);
-            }
-        }
-        
-        console.timeEnd('insertTime');
-
-        console.log('Measurements inserted successfully.');
     } catch (error) {
         console.error('Failed to insert measurements: ', error);
     }
@@ -203,7 +177,7 @@ async function createAndPopulateOrganisationsTimescale(data) {
     }
 }
 
-function run_pgbench(command) {
+function runCommand(command) {
     return new Promise((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {
             if (error) {
@@ -219,14 +193,43 @@ function run_pgbench(command) {
     });
 }
 
-async function performQueryTimescale() {
+async function performQueryTimescaleForMonth() {
     try {
-        const command = `docker exec timescale_container pgbench -U numoh -d timescaledb_for_test -f /queries/query_for_multipleDevices_in_timescale.sql --transactions=100 --log`;
-        const result = await run_pgbench(command);
+        const query = `SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('month', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800)  AND m.timestamp < TO_TIMESTAMP(1706698800) GROUP BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type;`;
 
-        console.log("Benchmarked 100 queries successfully!");
+        // Escape the query to be safely used in the shell
+        const escapedQuery = query.replace(/'/g, `'\\''`);
 
-        console.log(result);
+        const queryFile_for_one_month = '/tmp/query_for_one_month.sql';
+
+        const checkCommand = `docker exec timescaledb_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_month} || echo '${escapedQuery}' > ${queryFile_for_one_month}"`;
+
+        const command = `docker exec timescaledb_container bash -c "pgbench -U numoh -d timescaledb_for_test -f ${queryFile_for_one_month} --transactions=10 --log"`;
+        
+        await runCommand(checkCommand);
+        await runCommand(command);
+
+    } catch (error) {
+        console.error('Error occurred:', error);
+    }
+}
+
+async function performQueryTimescaleForYear() {
+    try {
+        const query = `SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('year', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800)  AND m.timestamp < TO_TIMESTAMP(1735642800) GROUP BY date_trunc('year', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('year', timezone('Europe/Berlin', m.timestamp)), d.sub_type;`;
+
+        // Escape the query to be safely used in the shell
+        const escapedQuery = query.replace(/'/g, `'\\''`);
+
+        const queryFile_for_one_year = '/tmp/query_for_one_year.sql';
+
+        const checkCommand = `docker exec timescaledb_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_year} || echo '${escapedQuery}' > ${queryFile_for_one_year}"`;
+
+        const command = `docker exec timescaledb_container bash -c "pgbench -U numoh -d timescaledb_for_test -f ${queryFile_for_one_year} --transactions=10 --log"`;
+
+        await runCommand(checkCommand);
+        await runCommand(command);
+
     } catch (error) {
         console.error('Error occurred:', error);
     }
@@ -235,7 +238,7 @@ async function performQueryTimescale() {
 async function findAndExtractDataTimescale() {
     try {
         // Step 1: Find the file inside the Docker container
-        const findCommand = 'docker exec timescale_container sh -c "find / -type f -name \'pgbench_log.*\' 2>/dev/null"';
+        const findCommand = 'docker exec timescaledb_container sh -c "find / -type f -name \'pgbench_log.*\' 2>/dev/null"';
         const result = await execProm(findCommand).catch(err => {
             if (!err.stdout.trim()) {
                 throw err;  // If there's no output, rethrow the error
@@ -252,7 +255,7 @@ async function findAndExtractDataTimescale() {
         const file = fileList[0].trim();
         console.log('File found:', file);
 
-        const command = `docker cp timescale_container:${file} .`;
+        const command = `docker cp timescaledb_container:${file} .`;
 
         // Execute the command
         await execProm(command);
@@ -261,7 +264,7 @@ async function findAndExtractDataTimescale() {
         await extractExecutionTime(file.slice(1));
 
         // Delete the file after processing
-        await execProm(`docker exec timescale_container sh -c "rm '${file}'"`);
+        await execProm(`docker exec timescaledb_container sh -c "rm '${file}'"`);
         console.log('File deleted successfully:', file);
 
     } catch (err) {
@@ -288,7 +291,7 @@ async function extractExecutionTime(file) {
                 }
             });
 
-            const mean = sum / 100;
+            const mean = sum / 10;
 
             console.log("Mean", mean + " ms");
 
@@ -306,9 +309,9 @@ async function extractExecutionTime(file) {
 
             console.log("Standard Deviation:", standardDeviation + " ms");
 ''
-            const cv = standardDeviation / mean * 100;
+            const cv = (standardDeviation / mean) * 100;
 
-            console.log("Coefficient of Variation:", cv.toFixed(2) + "%");
+            console.log("Coefficient of Variation:", cv.toFixed(2) + " %");
 
             console.log("Min Time:", mean - standardDeviation + " ms");
             console.log("Max Time:", mean + standardDeviation + " ms");
@@ -318,11 +321,40 @@ async function extractExecutionTime(file) {
         });
 }
 
+async function saveDataForTimescaleDB(data) {
+    try {
+        // Define batch size
+        const batchSize = 1000;
+        
+        for (let i = 0; i < data.length; i += batchSize) {
+            // Slice the devices array to get a batch
+            const batch = data.slice(i, i + batchSize);
+            
+            // Perform batch insert
+            try {
+                await measurements.bulkCreate(batch.map(({ device_id, value, type, timestamp }) => ({
+                    device_id: device_id,
+                    value: value,
+                    type: type,
+                    timestamp: timestamp
+                })));
+                // console.log(`Batch from ${i} to ${i + batchSize} inserted successfully.`);
+            } catch (error) {
+                console.error('Error inserting batch: ', error);
+            }
+        }
+    } catch (error) {
+        console.error('An error occurred:', error);
+    }
+}
+
 module.exports = {
     initializeDatabaseTimescale,
     createAndPopulateDevicesTimescale,
     createAndPopulateMeasurementsTimescale,
     createAndPopulateOrganisationsTimescale,
-    performQueryTimescale,
-    findAndExtractDataTimescale
+    performQueryTimescaleForMonth,
+    performQueryTimescaleForYear,
+    findAndExtractDataTimescale,
+    saveDataForTimescaleDB
 };
