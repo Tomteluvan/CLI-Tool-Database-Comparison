@@ -192,14 +192,14 @@ function runCommand(command) {
 
 function extractRelevantInfo(output) {
     const lines = output.split('\n');
-    const relevantLines = [];
-
-    for (const line of lines) {
-        if (line.includes('Mean') || line.includes('Standard') || line.includes('Coefficient') || 
-            line.includes('Min') || line.includes('Max') || line.includes('File')) {
-            relevantLines.push(line);
-        }
-    }
+    const relevantLines = lines.filter(line => 
+        line.includes('Mean') ||
+        line.includes('Standard Deviation') ||
+        line.includes('Coefficient of Variation') ||
+        line.includes('Min Time') ||
+        line.includes('Max Time') ||
+        line.includes('File')
+    );
 
     return relevantLines.join('\n');
 }
@@ -215,10 +215,15 @@ async function performQueryPostgresForMonth() {
 
         const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_month} || echo '${escapedQuery}' > ${queryFile_for_one_month}"`;
 
-        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_month} --transactions=10 --log --quiet"`;
+        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_month} --transactions=10 --log"`;
         
-        await runCommand(checkCommand);
-        await runCommand(command);
+        await runCommand(checkCommand)
+            .then(result => console.log(result))
+            .catch(error => console.error(error));
+
+        await runCommand(command)
+            .then(result => console.log(result))
+            .catch(error => console.error(error));
 
         console.log("Benchmarked 10 queries successfully!");
 
@@ -238,10 +243,15 @@ async function performQueryPostgresForYear() {
 
         const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_year} || echo '${escapedQuery}' > ${queryFile_for_one_year}"`;
 
-        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_year} --transactions=10 --log --quiet"`;
+        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_year} --transactions=10 --log"`;
 
-        await runCommand(checkCommand);
-        await runCommand(command);
+        await runCommand(checkCommand)
+            .then(result => console.log(result))
+            .catch(error => console.error(error));
+            
+        await runCommand(command)
+            .then(result => console.log(result))
+            .catch(error => console.error(error));
 
         console.log("Benchmarked 10 queries successfully!");
 
