@@ -177,7 +177,7 @@ async function createAndPopulateOrganisationsTimescale(data) {
     }
 }
 
-function run_pgbench(command) {
+function runCommand(command) {
     return new Promise((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {
             if (error) {
@@ -195,11 +195,20 @@ function run_pgbench(command) {
 
 async function performQueryTimescaleForMonth() {
     try {
-        const command = `docker exec timescaledb_container pgbench -U numoh -d timescaledb_for_test -c "SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('month', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800)  AND m.timestamp < TO_TIMESTAMP(1706698800) GROUP BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type;" --transactions=10 --log`;
-        
-        const result = await run_pgbench(command);
+        const query = `SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('month', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800)  AND m.timestamp < TO_TIMESTAMP(1706698800) GROUP BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type;`;
 
-        console.log(result);
+        // Escape the query to be safely used in the shell
+        const escapedQuery = query.replace(/'/g, `'\\''`);
+
+        const queryFile_for_one_month = '/tmp/query_for_one_month.sql';
+
+        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_month} || echo '${escapedQuery}' > ${queryFile_for_one_month}"`;
+
+        const command = `docker exec timescaledb_container bash -c "pgbench -U numoh -d timescaledb_for_test -f ${queryFile_for_one_month} --transactions=10 --log"`;
+        
+        await runCommand(checkCommand);
+        await runCommand(command);
+
     } catch (error) {
         console.error('Error occurred:', error);
     }
@@ -207,11 +216,20 @@ async function performQueryTimescaleForMonth() {
 
 async function performQueryTimescaleForYear() {
     try {
-        const command = `docker exec timescaledb_container pgbench -U numoh -d timescaledb_for_test -c "SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('year', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800)  AND m.timestamp < TO_TIMESTAMP(1735642800) GROUP BY date_trunc('year', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('year', timezone('Europe/Berlin', m.timestamp)), d.sub_type;" --transactions=10 --log`;
+        const query = `SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('year', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800)  AND m.timestamp < TO_TIMESTAMP(1735642800) GROUP BY date_trunc('year', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('year', timezone('Europe/Berlin', m.timestamp)), d.sub_type;`;
 
-        const result = await run_pgbench(command);
+        // Escape the query to be safely used in the shell
+        const escapedQuery = query.replace(/'/g, `'\\''`);
 
-        console.log(result);
+        const queryFile_for_one_year = '/tmp/query_for_one_year.sql';
+
+        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_year} || echo '${escapedQuery}' > ${queryFile_for_one_year}"`;
+
+        const command = `docker exec timescaledb_container bash -c "pgbench -U numoh -d timescaledb_for_test -f ${queryFile_for_one_year} --transactions=10 --log"`;
+
+        await runCommand(checkCommand);
+        await runCommand(command);
+        
     } catch (error) {
         console.error('Error occurred:', error);
     }
