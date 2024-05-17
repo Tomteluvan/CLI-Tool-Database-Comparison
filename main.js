@@ -11,7 +11,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-let numDevices;
+let numDevices, devices;
 let devicesData, organisationsData;
 
 function displayMainMenu() {
@@ -53,7 +53,7 @@ async function handleChoosenDatabase(option) {
             // PostgreSQL
         
             // Wait for the user to enter the number of devices
-            const devices = await askQuestion('Enter the number of devices: ');
+            devices = await askQuestion('Enter the number of devices: ');
         
             await initializeDatabasePostgres();
             await createAndPopulateMeasurementsPostgres();
@@ -97,16 +97,21 @@ async function handleChoosenDatabase(option) {
 
         case '4':
             // ClickHouse
+
+            // Wait for the user to enter the number of devices
+            devices = await askQuestion('Enter the number of devices: ');
+
             await initializeDatabaseClickHouse();
             await createAndPopulateMeasurementsClickHouse();
-            rl.question('Enter the number of devices: ', async (devices) => {
-                numDevices = parseInt(devices);
-                devicesData = generateDeviceData(numDevices);
-                measurementsData = await generateMeasurementData(devicesData, 3);
-                organisationsData = generateOrganisationData(devicesData);
-            });
+
+            numDevices = parseInt(devices);
+            devicesData = generateDeviceData(numDevices);
+            measurementsData = await generateMeasurementData(devicesData, 3);
+            organisationsData = generateOrganisationData(devicesData);
+        
             await createAndPopulateDevicesClickHouse(devicesData);
             await createAndPopulateOrganisationsClickHouse(organisationsData);
+
             displayMainMenu();
             break;    
 
