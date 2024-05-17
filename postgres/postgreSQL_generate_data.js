@@ -170,26 +170,52 @@ async function createAndPopulateOrganisationsPostgres(data) {
     }
 }
 
-function run_pgbench(command) {
-    return new Promise((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-                return;
-            }
-            if (stderr) {
-                reject(stderr);
-                return;
-            }
-            resolve(stdout);
-        });
+// function run_pgbench(command) {
+//     return new Promise((resolve, reject) => {
+//         exec(command, (error, stdout, stderr) => {
+//             if (error) {
+//                 reject(error);
+//                 return;
+//             }
+//             if (stderr) {
+//                 reject(stderr);
+//                 return;
+//             }
+//             resolve(stdout);
+//         });
+//     });
+// }
+
+function runCommand(command, callback) {
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`stderr: ${stderr}`);
+            return;
+        }
+        console.log(`stdout: ${stdout}`);
+        if (callback) callback();
     });
 }
 
 async function performQueryPostgresForMonth() {
     try {
-        const command = `docker exec postgres_container bash -c "echo \\"SELECT EXTRACT(EPOCH FROM timezone(\\\\'Europe/Berlin\\\\', date_trunc(\\\\'month\\\\', timezone(\\\\'Europe/Berlin\\\\', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = \\\\\\'1\\\\\\' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800) AND m.timestamp < TO_TIMESTAMP(1706698800) GROUP BY date_trunc(\\\\'month\\\\', timezone(\\\\'Europe/Berlin\\\\', m.timestamp)), d.sub_type ORDER BY date_trunc(\\\\'month\\\\', timezone(\\\\'Europe/Berlin\\\\', m.timestamp)), d.sub_type;\\" > /tmp/query.sql && pgbench -U numoh -d postgres_for_test -f /tmp/query.sql --transactions=10 --log && rm /tmp/query.sql"`;
-        const result = await run_pgbench(command);
+        const query = `SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('month', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800)  AND m.timestamp < TO_TIMESTAMP(1706698800) GROUP BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type;`;
+
+        const queryFile = '/tmp/query_for_one_month.sql';
+
+        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${query}' ${queryFile} || echo '${query}' > ${queryFile}"`;
+        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile} --transactions=10 --log"`;
+        
+        // const result = await run_pgbench(command);
+
+        // Run the check command first, then run the pgbench command if the check succeeds
+        runCommand(checkCommand, () => {
+            runCommand(command);
+        });
 
         console.log("Benchmarked 10 queries successfully!");
 
@@ -201,8 +227,20 @@ async function performQueryPostgresForMonth() {
 
 async function performQueryPostgresForYear() {
     try {
-        const command = `docker exec postgres_container bash -c "echo \\"SELECT EXTRACT(EPOCH FROM timezone(\\\\'Europe/Berlin\\\\', date_trunc(\\\\'year\\\\', timezone(\\\\'Europe/Berlin\\\\', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = \\\\\\'1\\\\\\' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800) AND m.timestamp < TO_TIMESTAMP(1735642800) GROUP BY date_trunc(\\\\'year\\\\', timezone(\\\\'Europe/Berlin\\\\', m.timestamp)), d.sub_type ORDER BY date_trunc(\\\\'year\\\\', timezone(\\\\'Europe/Berlin\\\\', m.timestamp)), d.sub_type;\\" > /tmp/query.sql && pgbench -U numoh -d postgres_for_test -f /tmp/query.sql --transactions=10 --log && rm /tmp/query.sql"`;
-        const result = await run_pgbench(command);
+        const query = `SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('year', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800) AND m.timestamp < TO_TIMESTAMP(1735642800) GROUP BY date_trunc('year', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('year', timezone('Europe/Berlin', m.timestamp)), d.sub_type;`;
+
+        const queryFile = '/tmp/query_for_one_year.sql';
+
+        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${query}' ${queryFile} || echo '${query}' > ${queryFile}"`;
+
+        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile} --transactions=10 --log"`;
+
+        // const result = await run_pgbench(command);
+
+        // Run the check command first, then run the pgbench command if the check succeeds
+        runCommand(checkCommand, () => {
+            runCommand(command);
+        });
 
         console.log("Benchmarked 10 queries successfully!");
 
