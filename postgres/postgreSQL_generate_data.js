@@ -218,14 +218,9 @@ async function performQueryPostgresForMonth() {
         const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_month} --transactions=10 --log"`;
         
         await runCommand(checkCommand);
-        const output = await runCommand(command);
-
+        await runCommand(command);
 
         console.log("Benchmarked 10 queries successfully! \n");
-
-        console.log('One Month PostgreSQL \n');
-
-        console.log(output)
 
     } catch (error) {
         console.error('Error occurred:', error);
@@ -246,13 +241,9 @@ async function performQueryPostgresForYear() {
         const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_year} --transactions=10 --log"`;
 
         await runCommand(checkCommand);
-        const output = await runCommand(command);
+        await runCommand(command);
 
         console.log("Benchmarked 10 queries successfully! \n");
-
-        console.log('One Year PostgreSQL \n');
-
-        console.log(output);
 
     } catch (error) {
         console.error('Error occurred:', error);
