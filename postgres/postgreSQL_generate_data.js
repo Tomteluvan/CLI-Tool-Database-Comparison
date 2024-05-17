@@ -186,21 +186,6 @@ function runCommand(command) {
     });
 }
 
-// function runCommand(command, callback) {
-//     exec(command, (error, stdout, stderr) => {
-//         if (error) {
-//             console.error(`Error: ${error.message}`);
-//             return;
-//         }
-//         if (stderr) {
-//             console.error(`stderr: ${stderr}`);
-//             return;
-//         }
-//         console.log(`stdout: ${stdout}`);
-//         if (callback) callback();
-//     });
-// }
-
 async function performQueryPostgresForMonth() {
     try {
         const query = `SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('month', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800)  AND m.timestamp < TO_TIMESTAMP(1706698800) GROUP BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type;`;
@@ -217,14 +202,8 @@ async function performQueryPostgresForMonth() {
         await runCommand(checkCommand);
         await runCommand(command);
 
-        // Run the check command first, then run the pgbench command if the check succeeds
-        // runCommand(checkCommand, () => {
-        //     runCommand(command);
-        // });
-
         console.log("Benchmarked 10 queries successfully!");
 
-        // console.log(result);
     } catch (error) {
         console.error('Error occurred:', error);
     }
@@ -243,16 +222,11 @@ async function performQueryPostgresForYear() {
 
         const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_year} --transactions=10 --log"`;
 
-        // const result = await run_pgbench(command);
-
-        // Run the check command first, then run the pgbench command if the check succeeds
-        runCommand(checkCommand, () => {
-            runCommand(command);
-        });
+        await runCommand(checkCommand);
+        await runCommand(command);
 
         console.log("Benchmarked 10 queries successfully!");
 
-        // console.log(result);
     } catch (error) {
         console.error('Error occurred:', error);
     }
