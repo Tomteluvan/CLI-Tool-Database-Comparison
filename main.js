@@ -180,7 +180,9 @@ async function handleChoosenQuery(option) {
             displayMainMenu();
             break;
         case '4':
+            console.log('One Month ClickHouse \n');
             await performQueryForClickHouseForMonth();
+            console.log('One Year ClickHouse \n');
             await performQueryForClickHouseForYear();
             displayMainMenu();
             break;
