@@ -170,36 +170,36 @@ async function createAndPopulateOrganisationsPostgres(data) {
     }
 }
 
-// function run_pgbench(command) {
-//     return new Promise((resolve, reject) => {
-//         exec(command, (error, stdout, stderr) => {
-//             if (error) {
-//                 reject(error);
-//                 return;
-//             }
-//             if (stderr) {
-//                 reject(stderr);
-//                 return;
-//             }
-//             resolve(stdout);
-//         });
-//     });
-// }
-
-function runCommand(command, callback) {
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error: ${error.message}`);
-            return;
-        }
-        if (stderr) {
-            console.error(`stderr: ${stderr}`);
-            return;
-        }
-        console.log(`stdout: ${stdout}`);
-        if (callback) callback();
+function runCommand(command) {
+    return new Promise((resolve, reject) => {
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            if (stderr) {
+                reject(stderr);
+                return;
+            }
+            resolve(stdout);
+        });
     });
 }
+
+// function runCommand(command, callback) {
+//     exec(command, (error, stdout, stderr) => {
+//         if (error) {
+//             console.error(`Error: ${error.message}`);
+//             return;
+//         }
+//         if (stderr) {
+//             console.error(`stderr: ${stderr}`);
+//             return;
+//         }
+//         console.log(`stdout: ${stdout}`);
+//         if (callback) callback();
+//     });
+// }
 
 async function performQueryPostgresForMonth() {
     try {
@@ -214,12 +214,13 @@ async function performQueryPostgresForMonth() {
 
         const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_month} --transactions=10 --log"`;
         
-        // const result = await run_pgbench(command);
+        await runCommand(checkCommand);
+        await runCommand(command);
 
         // Run the check command first, then run the pgbench command if the check succeeds
-        runCommand(checkCommand, () => {
-            runCommand(command);
-        });
+        // runCommand(checkCommand, () => {
+        //     runCommand(command);
+        // });
 
         console.log("Benchmarked 10 queries successfully!");
 
