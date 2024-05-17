@@ -4,6 +4,7 @@ const { createAndPopulateDevicesTimescale, createAndPopulateOrganisationsTimesca
 const { createAndPopulateDevicesPostgres, createAndPopulateOrganisationsPostgres, createAndPopulateMeasurementsPostgres, initializeDatabasePostgres, performQueryPostgresForMonth, performQueryPostgresForYear, findAndExtractDataPostgres } = require('./postgres/postgreSQL_generate_data');
 const { createAndPopulateDevicesClickHouse, createAndPopulateOrganisationsClickHouse, createAndPopulateMeasurementsClickHouse, initializeDatabaseClickHouse, performQueryForClickHouseForMonth, performQueryForClickHouseForYear } = require('./clickhouse/clickhouse_generate_data');
 const { performQueryInflux1Month, performQueryInflux1Year, generateAndWriteMeasurements } = require('./influxdb/influx-create')
+const { resolve } = require('path');
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -56,7 +57,7 @@ async function handleChoosenDatabase(option) {
         
             await initializeDatabasePostgres();
             await createAndPopulateMeasurementsPostgres();
-            
+
             numDevices = parseInt(devices);
             devicesData = generateDeviceData(numDevices);
             measurementsData = await generateMeasurementData(devicesData, 1);
