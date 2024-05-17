@@ -215,7 +215,7 @@ async function performQueryPostgresForMonth() {
 
         const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_month} || echo '${escapedQuery}' > ${queryFile_for_one_month}"`;
 
-        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_month} --transactions=10 --log -q"`;
+        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_month} --transactions=10 --log --quiet"`;
         
         await runCommand(checkCommand);
         await runCommand(command);
@@ -238,7 +238,7 @@ async function performQueryPostgresForYear() {
 
         const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_year} || echo '${escapedQuery}' > ${queryFile_for_one_year}"`;
 
-        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_year} --transactions=10 --log -q"`;
+        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_year} --transactions=10 --log --quiet"`;
 
         await runCommand(checkCommand);
         await runCommand(command);
