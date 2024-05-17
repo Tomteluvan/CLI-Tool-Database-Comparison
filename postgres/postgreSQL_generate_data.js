@@ -181,9 +181,27 @@ function runCommand(command) {
                 reject(stderr);
                 return;
             }
-            resolve(stdout);
+            // resolve(stdout);
+
+            // Process stdout to get only the relevant information
+            const relevantOutput = extractRelevantInfo(stdout);
+            resolve(relevantOutput);
         });
     });
+}
+
+function extractRelevantInfo(output) {
+    const lines = output.split('\n');
+    const relevantLines = [];
+
+    for (const line of lines) {
+        if (line.includes('Mean') || line.includes('Standard') || line.includes('Coefficient') || 
+            line.includes('Min') || line.includes('Max') || line.includes('File')) {
+            relevantLines.push(line);
+        }
+    }
+
+    return relevantLines.join('\n');
 }
 
 async function performQueryPostgresForMonth() {
@@ -257,7 +275,7 @@ async function findAndExtractDataPostgres() {
         // Execute the command
         await execProm(command);
         console.log('File copied successfully to the current directory.');
-
+        
         await extractExecutionTime(file.slice(1));
 
         // Delete the file after processing
