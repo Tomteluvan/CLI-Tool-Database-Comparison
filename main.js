@@ -166,8 +166,10 @@ async function handleChoosenQuery(option) {
             break;
         case '2':
             await performQueryTimescaleForMonth();
+            console.log('One Month TimescaleDB \n');
             await findAndExtractDataTimescale();
             await performQueryTimescaleForYear();
+            console.log('One Year TimescaleDB \n');
             await findAndExtractDataTimescale();
             displayMainMenu();
             break;

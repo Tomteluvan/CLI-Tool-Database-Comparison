@@ -181,27 +181,9 @@ function runCommand(command) {
                 reject(stderr);
                 return;
             }
-            // resolve(stdout);
-
-            // Process stdout to get only the relevant information
-            const relevantOutput = extractRelevantInfo(stdout);
-            resolve(relevantOutput);
+            resolve(stdout);
         });
     });
-}
-
-function extractRelevantInfo(output) {
-    const lines = output.split('\n');
-    const relevantLines = lines.filter(line => 
-        line.includes('Mean') ||
-        line.includes('Standard Deviation') ||
-        line.includes('Coefficient of Variation') ||
-        line.includes('Min Time') ||
-        line.includes('Max Time') ||
-        line.includes('File')
-    );
-
-    return relevantLines.join('\n');
 }
 
 async function performQueryPostgresForMonth() {
@@ -219,8 +201,6 @@ async function performQueryPostgresForMonth() {
         
         await runCommand(checkCommand);
         await runCommand(command);
-
-        console.log("Benchmarked 10 queries successfully! \n");
 
     } catch (error) {
         console.error('Error occurred:', error);
@@ -242,8 +222,6 @@ async function performQueryPostgresForYear() {
 
         await runCommand(checkCommand);
         await runCommand(command);
-
-        console.log("Benchmarked 10 queries successfully! \n");
 
     } catch (error) {
         console.error('Error occurred:', error);
