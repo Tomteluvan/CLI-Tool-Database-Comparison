@@ -158,8 +158,8 @@ async function handleChoosenQuery(option) {
         case '1':
             await performQueryPostgresForMonth();
             await findAndExtractDataPostgres();
-            await performQueryPostgresForYear();
-            await findAndExtractDataPostgres();
+            // await performQueryPostgresForYear();
+            // await findAndExtractDataPostgres();
             displayMainMenu();
             break;
         case '2':
