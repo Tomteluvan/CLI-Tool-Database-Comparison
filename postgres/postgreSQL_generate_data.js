@@ -219,7 +219,7 @@ async function performQueryPostgresForMonth() {
 
         console.log("Benchmarked 10 queries successfully!");
 
-        console.log(result);
+        // console.log(result);
     } catch (error) {
         console.error('Error occurred:', error);
     }
@@ -244,7 +244,7 @@ async function performQueryPostgresForYear() {
 
         console.log("Benchmarked 10 queries successfully!");
 
-        console.log(result);
+        // console.log(result);
     } catch (error) {
         console.error('Error occurred:', error);
     }
