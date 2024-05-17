@@ -157,10 +157,8 @@ async function handleChoosenQuery(option) {
     switch (option) {
         case '1':
             await performQueryPostgresForMonth();
-            console.log('One Month PostgreSQL \n');
             await findAndExtractDataPostgres();
             await performQueryPostgresForYear();
-            console.log('One Year PostgreSQL \n');
             await findAndExtractDataPostgres();
             displayMainMenu();
             break;
