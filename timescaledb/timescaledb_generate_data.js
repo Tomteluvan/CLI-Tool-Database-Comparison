@@ -202,7 +202,7 @@ async function performQueryTimescaleForMonth() {
 
         const queryFile_for_one_month = '/tmp/query_for_one_month.sql';
 
-        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_month} || echo '${escapedQuery}' > ${queryFile_for_one_month}"`;
+        const checkCommand = `docker exec timescaledb_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_month} || echo '${escapedQuery}' > ${queryFile_for_one_month}"`;
 
         const command = `docker exec timescaledb_container bash -c "pgbench -U numoh -d timescaledb_for_test -f ${queryFile_for_one_month} --transactions=10 --log"`;
         
@@ -223,13 +223,13 @@ async function performQueryTimescaleForYear() {
 
         const queryFile_for_one_year = '/tmp/query_for_one_year.sql';
 
-        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_year} || echo '${escapedQuery}' > ${queryFile_for_one_year}"`;
+        const checkCommand = `docker exec timescaledb_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_year} || echo '${escapedQuery}' > ${queryFile_for_one_year}"`;
 
         const command = `docker exec timescaledb_container bash -c "pgbench -U numoh -d timescaledb_for_test -f ${queryFile_for_one_year} --transactions=10 --log"`;
 
         await runCommand(checkCommand);
         await runCommand(command);
-        
+
     } catch (error) {
         console.error('Error occurred:', error);
     }
