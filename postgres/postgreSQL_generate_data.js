@@ -208,11 +208,11 @@ async function performQueryPostgresForMonth() {
         // Escape the query to be safely used in the shell
         const escapedQuery = query.replace(/'/g, `'\\''`);
 
-        const queryFile = '/tmp/query_for_one_month.sql';
+        const queryFile_for_one_month = '/tmp/query_for_one_month.sql';
 
-        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile} || echo '${escapedQuery}' > ${queryFile}"`;
-        
-        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile} --transactions=10 --log"`;
+        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_month} || echo '${escapedQuery}' > ${queryFile_for_one_month}"`;
+
+        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_month} --transactions=10 --log"`;
         
         // const result = await run_pgbench(command);
 
@@ -236,11 +236,11 @@ async function performQueryPostgresForYear() {
         // Escape the query to be safely used in the shell
         const escapedQuery = query.replace(/'/g, `'\\''`);
 
-        const queryFile = '/tmp/query_for_one_year.sql';
+        const queryFile_for_one_year = '/tmp/query_for_one_year.sql';
 
-        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile} || echo '${escapedQuery}' > ${queryFile}"`;
+        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile_for_one_year} || echo '${escapedQuery}' > ${queryFile_for_one_year}"`;
 
-        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile} --transactions=10 --log"`;
+        const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile_for_one_year} --transactions=10 --log"`;
 
         // const result = await run_pgbench(command);
 
