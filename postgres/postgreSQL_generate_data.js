@@ -205,9 +205,13 @@ async function performQueryPostgresForMonth() {
     try {
         const query = `SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('month', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800)  AND m.timestamp < TO_TIMESTAMP(1706698800) GROUP BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('month', timezone('Europe/Berlin', m.timestamp)), d.sub_type;`;
 
+        // Escape the query to be safely used in the shell
+        const escapedQuery = query.replace(/'/g, `'\\''`);
+
         const queryFile = '/tmp/query_for_one_month.sql';
 
-        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${query}' ${queryFile} || echo '${query}' > ${queryFile}"`;
+        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile} || echo '${escapedQuery}' > ${queryFile}"`;
+        
         const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile} --transactions=10 --log"`;
         
         // const result = await run_pgbench(command);
@@ -229,9 +233,12 @@ async function performQueryPostgresForYear() {
     try {
         const query = `SELECT EXTRACT(EPOCH FROM timezone('Europe/Berlin', date_trunc('year', timezone('Europe/Berlin', m.timestamp))))::integer AS ts, SUM(value) AS value, d.sub_type AS type FROM measurements AS m JOIN devices AS d ON d.id = m.device_id JOIN organisations AS o ON d.id = o.device_id WHERE o.organisation_id = '1' AND m.type = 5 AND m.timestamp >= TO_TIMESTAMP(1704106800) AND m.timestamp < TO_TIMESTAMP(1735642800) GROUP BY date_trunc('year', timezone('Europe/Berlin', m.timestamp)), d.sub_type ORDER BY date_trunc('year', timezone('Europe/Berlin', m.timestamp)), d.sub_type;`;
 
+        // Escape the query to be safely used in the shell
+        const escapedQuery = query.replace(/'/g, `'\\''`);
+
         const queryFile = '/tmp/query_for_one_year.sql';
 
-        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${query}' ${queryFile} || echo '${query}' > ${queryFile}"`;
+        const checkCommand = `docker exec postgres_container bash -c "grep -qF '${escapedQuery}' ${queryFile} || echo '${escapedQuery}' > ${queryFile}"`;
 
         const command = `docker exec postgres_container bash -c "pgbench -U numoh -d postgres_for_test -f ${queryFile} --transactions=10 --log"`;
 
