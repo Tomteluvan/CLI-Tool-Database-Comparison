@@ -71,28 +71,39 @@ async function handleChoosenDatabase(option) {
 
         case '2':
             // TimescaleDB
+
+            // Wait for the user to enter the number of devices
+            devices = await askQuestion('Enter the number of devices: ');
+
             await initializeDatabaseTimescale();
             await createAndPopulateMeasurementsTimescale();
-            rl.question('Enter the number of devices: ', async (devices) => {
-                numDevices = parseInt(devices);
-                devicesData = generateDeviceData(numDevices);
-                measurementsData = await generateMeasurementData(devicesData, 2);
-                organisationsData = generateOrganisationData(devicesData);
-            });
+            
+
+            numDevices = parseInt(devices);
+            devicesData = generateDeviceData(numDevices);
+            measurementsData = await generateMeasurementData(devicesData, 2);
+            organisationsData = generateOrganisationData(devicesData);
+            
             await createAndPopulateDevicesTimescale(devicesData);
             await createAndPopulateOrganisationsTimescale(organisationsData);
+            
             displayMainMenu();
             break;
 
         case '3':
             // InfluxDB
-            rl.question('Enter the number of devices: ', (devices) => {
-                numDevices = parseInt(devices);
-                devicesData = generateDeviceData(numDevices)
-                organisationsData = generateOrganisationData(devicesData)
-            });
-            await generateAndWriteMeasurements(devicesData, organisationsData)
+
+            // Wait for the user to enter the number of devices
+            devices = await askQuestion('Enter the number of devices: ');
+
+
+            numDevices = parseInt(devices);
+            devicesData = generateDeviceData(numDevices);
+            organisationsData = generateOrganisationData(devicesData);
+
+            await generateAndWriteMeasurements(devicesData, organisationsData);
             displayMainMenu();
+
             break;
 
         case '4':
